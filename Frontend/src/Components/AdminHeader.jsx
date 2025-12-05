@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { FaBars, FaSearch, FaExpandAlt, FaCompressAlt, FaCrown } from "react-icons/fa";
-import { ChevronDown, Settings, LogOut, Shield } from "lucide-react";
+import { ChevronDown, Settings, LogOut, Shield, Home, Users } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "../redux/user/userSlice";
 import { motion } from "framer-motion";
 
-function AdminHeader({ onToggleSidebar }) {
+function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [userType, setUserType] = useState(null);
   const [userName, setUserName] = useState("Admin");
@@ -114,6 +114,14 @@ function AdminHeader({ onToggleSidebar }) {
     };
   }, []);
 
+  // Function to handle section change
+  const handleSectionChange = (section) => {
+    if (onSectionChange) {
+      onSectionChange(section);
+    }
+    setIsDropdownOpen(false);
+  };
+
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-lg">
       <div className="flex items-center justify-between px-4 py-3 md:px-8">
@@ -206,21 +214,7 @@ function AdminHeader({ onToggleSidebar }) {
                   </div>
                 </div>
 
-                {/* Links */}
-                <div className="py-2">
-                  <a href="/admin/dashboard" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                    <span>Dashboard</span>
-                  </a>
-                  <a href="/admin/staff" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <FaCrown className="h-4 w-4 mr-3 text-gray-400" />
-                    <span>Admin Management</span>
-                  </a>
-                  <a href="/admin/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                    <span>Settings</span>
-                  </a>
-                </div>
+              
 
                 {/* Logout */}
                 <div className="border-t border-gray-100">
