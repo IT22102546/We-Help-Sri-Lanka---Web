@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaSearch,
   FaPlus,
@@ -16,12 +16,16 @@ import {
   FaChartBar,
   FaFilter,
   FaDownload,
-  FaSort,
+  FaArrowUp,
+  FaArrowDown,
+  FaWhatsapp, // Added WhatsApp icon
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import * as XLSX from "xlsx";
 
 function DonationRequests() {
   const [donations, setDonations] = useState([]);
+  const [filteredDonations, setFilteredDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchKey, setSearchKey] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -31,6 +35,18 @@ function DonationRequests() {
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    district: "",
+    status: "",
+    priority: "",
+    verified: "",
+  });
+  const [sortConfig, setSortConfig] = useState({
+    key: "createdAt",
+    direction: "desc",
+  });
+  const searchTimeoutRef = useRef(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -46,6 +62,7 @@ function DonationRequests() {
     address: "",
     numberOfPeople: "",
     requirements: [],
+    newRequirement: "",
     otherRequirements: "",
     time: "",
     priority: 3,
@@ -54,23 +71,6 @@ function DonationRequests() {
     callStatus: "",
     notes: "",
   });
-
-  // Aid categories matching backend data
-  const aidCategories = [
-    { value: "Food (Cooked Meals)", label: "Food (Cooked Meals)" },
-    {
-      value: "Dry Rations (Rice, Flour, Lentils, etc.)",
-      label: "Dry Rations (Rice, Flour, Lentils, etc.)",
-    },
-    { value: "Drinking Water", label: "Drinking Water" },
-    {
-      value: "Essential Medicines/First Aid",
-      label: "Essential Medicines/First Aid",
-    },
-    { value: "Blankets/Clothes", label: "Blankets/Clothes" },
-    { value: "Sanitary Items/Toiletries", label: "Sanitary Items/Toiletries" },
-    { value: "Other", label: "Other" },
-  ];
 
   // Districts of Sri Lanka
   const districts = [
@@ -101,6 +101,40 @@ function DonationRequests() {
     "Matale",
   ];
 
+  // Status options including "Complete"
+  const statusOptions = [
+    "Not yet received",
+    "Linked a supplier",
+    "Received",
+    "Already received",
+    "Complete",
+    "FAKE",
+  ];
+
+  // Quick requirement suggestions
+  const requirementSuggestions = [
+    "Food (Cooked Meals)",
+    "Dry Rations (Rice, Flour, Lentils)",
+    "Drinking Water",
+    "Essential Medicines",
+    "First Aid Kits",
+    "Blankets",
+    "Clothes",
+    "Sanitary Items",
+    "Toiletries",
+    "Baby Food",
+    "Milk Powder",
+    "Water Bottles",
+    "Mosquito Nets",
+    "Soap",
+    "Toothpaste",
+    "Shampoo",
+    "Cooking Oil",
+    "Sugar",
+    "Salt",
+    "Tea Leaves",
+  ];
+
   // Fetch donations data
   const fetchDonations = async (page = 1, search = "") => {
     try {
@@ -110,13 +144,20 @@ function DonationRequests() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "20",
-        sortBy: "createdAt",
-        sortOrder: "desc",
+        sortBy: sortConfig.key,
+        sortOrder: sortConfig.direction,
       });
 
       if (search) {
         params.append("search", search);
       }
+
+      // Add filters to query params
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          params.append(key, value);
+        }
+      });
 
       const response = await fetch(`/api/donation-requests?${params}`);
 
@@ -127,6 +168,7 @@ function DonationRequests() {
       const data = await response.json();
       if (data.success) {
         setDonations(data.data || []);
+        setFilteredDonations(data.data || []);
         setPagination(
           data.pagination || {
             currentPage: 1,
@@ -146,13 +188,219 @@ function DonationRequests() {
     }
   };
 
+  // Fetch ALL donations for export (without pagination)
+  const fetchAllDonations = async () => {
+    try {
+      const params = new URLSearchParams({
+        limit: "10000", // Large number to get all records
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+
+      const response = await fetch(`/api/donation-requests?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch donations for export");
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        return data.data || [];
+      } else {
+        throw new Error(data.message || "Failed to fetch data");
+      }
+    } catch (error) {
+      console.error("Fetch all donations error:", error);
+      setErrorMessage("Failed to fetch data for export: " + error.message);
+      return [];
+    }
+  };
+
   useEffect(() => {
     fetchDonations();
-  }, []);
+  }, [sortConfig, filters]);
+
+  // Handle real-time search
+  const handleSearchChange = (value) => {
+    setSearchKey(value);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      if (value.trim()) {
+        // Filter donations locally for instant feedback
+        const filtered = donations.filter(donation => 
+          donation.name?.toLowerCase().includes(value.toLowerCase()) ||
+          donation.phone?.some(phone => phone.includes(value)) ||
+          donation.district?.toLowerCase().includes(value.toLowerCase()) ||
+          donation.address?.toLowerCase().includes(value.toLowerCase()) ||
+          donation.status?.toLowerCase().includes(value.toLowerCase())
+        );
+        setFilteredDonations(filtered);
+      } else {
+        setFilteredDonations(donations);
+      }
+    }, 300); // 300ms delay
+  };
+
+  // Reset search to show all data
+  const handleSearchReset = () => {
+    setSearchKey("");
+    setFilteredDonations(donations);
+  };
 
   // Search function
   const handleSearch = () => {
-    fetchDonations(1, searchKey);
+    if (searchKey.trim()) {
+      fetchDonations(1, searchKey);
+    } else {
+      handleSearchReset();
+    }
+  };
+
+  // WhatsApp Sharing Function
+  const shareToWhatsApp = (donation) => {
+    try {
+      // Format the message with all donation details
+      let message = `📋 *DONATION REQUEST DETAILS*\n\n`;
+      message += `*Name:* ${donation.name || "Not mentioned"}\n`;
+      message += `*District:* ${donation.district || "Not specified"}\n`;
+      message += `*Address:* ${donation.address || "Not specified"}\n`;
+      message += `*People Affected:* ${donation.numberOfPeople || "Not specified"}\n`;
+      
+      if (donation.phone && donation.phone.length > 0) {
+        message += `*Contact:* ${donation.phone[0]}\n`;
+      }
+      
+      message += `*Urgency Level:* ${donation.priority || "3"}\n`;
+      message += `*Status:* ${donation.status || "Not yet received"}\n`;
+      
+      if (donation.verified) {
+        message += `*✓ Verified Request*\n`;
+      }
+      
+      if (donation.requirements && donation.requirements.length > 0) {
+        message += `\n*Requirements:*\n`;
+        donation.requirements.forEach((req, index) => {
+          message += `• ${req}\n`;
+        });
+      }
+      
+      if (donation.notes) {
+        message += `\n*Notes:* ${donation.notes}\n`;
+      }
+      
+      message += `\n---\n*ID:* ${donation._id}\n`;
+      message += `*Created:* ${formatDate(donation.createdAt)}\n`;
+      
+      // Create WhatsApp URL
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+      
+      // Open WhatsApp in new tab
+      window.open(whatsappUrl, '_blank');
+      
+      setSuccessMessage("Opening WhatsApp with donation details...");
+    } catch (error) {
+      console.error("WhatsApp sharing error:", error);
+      setErrorMessage("Failed to open WhatsApp. Please try again.");
+    }
+  };
+
+  // Export ALL data to Excel (not just current page)
+  const exportToExcel = async () => {
+    try {
+      setLoading(true);
+      setSuccessMessage("Fetching all data for export...");
+      
+      // Fetch all donations for export
+      const allDonations = await fetchAllDonations();
+      
+      if (allDonations.length === 0) {
+        setErrorMessage("No data available to export.");
+        return;
+      }
+      
+      const dataToExport = allDonations.map((donation, index) => ({
+        "No": index + 1,
+        "ID": donation._id || "",
+        "Name": donation.name || "Not mentioned",
+        "Phone": donation.phone?.[0] || "",
+        "District": donation.district || "",
+        "Address": donation.address || "",
+        "People": donation.numberOfPeople || "Not specified",
+        "Priority": donation.priority ? `Level ${donation.priority}` : "Level 3",
+        "Status": donation.status || "",
+        "Verified": donation.verified ? "Yes" : "No",
+        "Requirements": donation.requirements?.join(", ") || "",
+        "Other Requirements": donation.otherRequirements?.[0] || "",
+        "Time": donation.time || "",
+        "Call Status": donation.callStatus || "",
+        "Notes": donation.notes || "",
+        "Created At": formatDate(donation.createdAt),
+        "Updated At": formatDate(donation.updatedAt),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "All Donation Requests");
+      
+      // Calculate column widths
+      const columnWidths = [
+        { wch: 8 },    // No
+        { wch: 24 },   // ID
+        { wch: 20 },   // Name
+        { wch: 15 },   // Phone
+        { wch: 15 },   // District
+        { wch: 30 },   // Address
+        { wch: 15 },   // People
+        { wch: 12 },   // Priority
+        { wch: 20 },   // Status
+        { wch: 10 },   // Verified
+        { wch: 40 },   // Requirements
+        { wch: 25 },   // Other Requirements
+        { wch: 15 },   // Time
+        { wch: 20 },   // Call Status
+        { wch: 50 },   // Notes
+        { wch: 20 },   // Created At
+        { wch: 20 },   // Updated At
+      ];
+      
+      worksheet["!cols"] = columnWidths;
+      
+      // Add header row style
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4F46E5" } }, // Indigo color
+        alignment: { horizontal: "center" }
+      };
+      
+      // Apply header style
+      const range = XLSX.utils.decode_range(worksheet["!ref"]);
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!worksheet[cellAddress]) continue;
+        worksheet[cellAddress].s = headerStyle;
+      }
+      
+      // Generate Excel file
+      const date = new Date();
+      const formattedDate = date.toISOString().split('T')[0];
+      const fileName = `donation_requests_all_${formattedDate}.xlsx`;
+      
+      XLSX.writeFile(workbook, fileName);
+      
+      setSuccessMessage(`Successfully exported ${allDonations.length} records to Excel!`);
+    } catch (error) {
+      console.error("Export error:", error);
+      setErrorMessage("Failed to export data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Update form data
@@ -172,15 +420,76 @@ function DonationRequests() {
     }
   };
 
-  // Handle requirements selection
-  const handleRequirementToggle = (requirement) => {
-    const newRequirements = formData.requirements.includes(requirement)
-      ? formData.requirements.filter((r) => r !== requirement)
-      : [...formData.requirements, requirement];
+  // Add new requirement
+  const handleAddRequirement = () => {
+    if (formData.newRequirement.trim()) {
+      setFormData({
+        ...formData,
+        requirements: [...formData.requirements, formData.newRequirement.trim()],
+        newRequirement: "",
+      });
+    }
+  };
 
+  // Remove requirement
+  const handleRemoveRequirement = (index) => {
+    const newRequirements = [...formData.requirements];
+    newRequirements.splice(index, 1);
     setFormData({
       ...formData,
       requirements: newRequirements,
+    });
+  };
+
+  // Add requirement from suggestion
+  const handleAddSuggestion = (suggestion) => {
+    if (!formData.requirements.includes(suggestion)) {
+      setFormData({
+        ...formData,
+        requirements: [...formData.requirements, suggestion],
+      });
+    }
+  };
+
+  // Handle Enter key press for requirements
+  const handleRequirementKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddRequirement();
+    }
+  };
+
+  // Clear all requirements
+  const handleClearRequirements = () => {
+    setFormData({
+      ...formData,
+      requirements: [],
+    });
+  };
+
+  // Handle sort
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Filter functions
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      district: "",
+      status: "",
+      priority: "",
+      verified: "",
     });
   };
 
@@ -211,6 +520,9 @@ function DonationRequests() {
         otherRequirements: formData.otherRequirements || "",
         notes: formData.notes || "",
       };
+
+      // Remove newRequirement field before sending
+      delete requestData.newRequirement;
 
       const response = await fetch("/api/donation-requests", {
         method: "POST",
@@ -243,6 +555,18 @@ function DonationRequests() {
     try {
       if (!selectedDonation) return;
 
+      // Prepare data for backend
+      const requestData = {
+        ...formData,
+        phone: formData.phone,
+        requirements: formData.requirements,
+        otherRequirements: formData.otherRequirements || "",
+        notes: formData.notes || "",
+      };
+
+      // Remove newRequirement field before sending
+      delete requestData.newRequirement;
+
       const response = await fetch(
         `/api/donation-requests/${selectedDonation._id}`,
         {
@@ -250,7 +574,7 @@ function DonationRequests() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(requestData),
         }
       );
 
@@ -310,6 +634,7 @@ function DonationRequests() {
       address: "",
       numberOfPeople: "",
       requirements: [],
+      newRequirement: "",
       otherRequirements: "",
       time: "",
       priority: 3,
@@ -330,6 +655,7 @@ function DonationRequests() {
       address: donation.address || "",
       numberOfPeople: donation.numberOfPeople || "",
       requirements: donation.requirements || [],
+      newRequirement: "",
       otherRequirements: donation.otherRequirements?.[0] || "",
       time: donation.time || "",
       priority: donation.priority || 3,
@@ -357,6 +683,8 @@ function DonationRequests() {
         return "bg-teal-100 text-teal-800 border border-teal-200";
       case "Linked a supplier":
         return "bg-blue-100 text-blue-800 border border-blue-200";
+      case "Complete":
+        return "bg-purple-100 text-purple-800 border border-purple-200";
       case "FAKE":
         return "bg-red-100 text-red-800 border border-red-200";
       case "Not yet received":
@@ -403,6 +731,7 @@ function DonationRequests() {
       fetchDonations(page, searchKey);
     }
   };
+
   // Helper function to break name after certain character length
   const formatName = (name) => {
     if (!name) return "";
@@ -436,7 +765,7 @@ function DonationRequests() {
 
   if (loading) {
     return (
-      <div className="p-6 pt-24">
+      <div className="p-4 md:p-6 pt-20 md:pt-24">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg w-64"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -455,7 +784,7 @@ function DonationRequests() {
       <div className="p-4 md:p-6 pt-20 md:pt-24">
         {/* Page Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
                 Donation Requests Management
@@ -474,18 +803,18 @@ function DonationRequests() {
           </div>
         </div>
 
-        {/* Stats Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Stats Summary Cards - Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">
                   {pagination.totalItems}
                 </h2>
-                <p className="text-gray-600">Total Requests</p>
+                <p className="text-gray-600 text-sm md:text-base">Total Requests</p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                <FaChartBar className="text-2xl text-white" />
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                <FaChartBar className="text-lg md:text-2xl text-white" />
               </div>
             </div>
           </div>
@@ -496,10 +825,10 @@ function DonationRequests() {
                 <h2 className="text-xl font-semibold text-gray-800">
                   {donations.filter((d) => d.verified).length}
                 </h2>
-                <p className="text-gray-600">Verified</p>
+                <p className="text-gray-600 text-sm md:text-base">Verified</p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
-                <FaCheckCircle className="text-2xl text-white" />
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
+                <FaCheckCircle className="text-lg md:text-2xl text-white" />
               </div>
             </div>
           </div>
@@ -509,14 +838,13 @@ function DonationRequests() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">
                   {
-                    donations.filter((d) => d.status === "Not yet received")
-                      .length
+                    donations.filter((d) => d.status === "Complete").length
                   }
                 </h2>
-                <p className="text-gray-600">Pending</p>
+                <p className="text-gray-600 text-sm md:text-base">Completed</p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
-                <FaClock className="text-2xl text-white" />
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <FaCheckCircle className="text-lg md:text-2xl text-white" />
               </div>
             </div>
           </div>
@@ -531,58 +859,173 @@ function DonationRequests() {
                     ).length
                   }
                 </h2>
-                <p className="text-gray-600">High Priority</p>
+                <p className="text-gray-600 text-sm md:text-base">High Priority</p>
               </div>
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center">
-                <FaExclamationTriangle className="text-2xl text-white" />
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center">
+                <FaExclamationTriangle className="text-lg md:text-2xl text-white" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Actions Bar */}
+        {/* Search and Actions Bar - Responsive */}
         <div className="bg-white rounded-xl shadow p-4 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
-            <div className="flex-1 max-w-lg">
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                  placeholder="Search by name, phone, address, or district..."
-                  value={searchKey}
-                  onChange={(e) => setSearchKey(e.target.value)}
-                  onKeyUp={(e) => e.key === "Enter" && handleSearch()}
-                />
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                className="w-full pl-10 pr-24 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm md:text-base"
+                placeholder="Search by name, phone, district, address, status..."
+                value={searchKey}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyUp={(e) => e.key === "Enter" && handleSearch()}
+              />
+              <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
+                {searchKey && (
+                  <button
+                    onClick={handleSearchReset}
+                    className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
                 <button
                   onClick={handleSearch}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-md text-sm hover:from-blue-600 hover:to-cyan-600 transition-all"
+                  className="px-3 py-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded text-sm hover:from-blue-600 hover:to-cyan-600 transition-all"
                 >
                   Search
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
-              <button
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                onClick={() => {
-                  resetForm();
-                  setShowAddModal(true);
-                }}
-              >
-                <FaPlus className="mr-2" />
-                Add New Request
-              </button>
+            {/* Actions and Filters */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button
+                  className="flex items-center px-3 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-sm md:text-base"
+                  onClick={() => {
+                    resetForm();
+                    setShowAddModal(true);
+                  }}
+                >
+                  <FaPlus className="mr-2" />
+                  <span className="hidden sm:inline">Add New Request</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
 
-              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <FaFilter className="text-gray-600" />
-              </button>
+                <button
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  onClick={() => setShowFilters(!showFilters)}
+                  title="Filters"
+                >
+                  <FaFilter className="text-gray-600" />
+                </button>
 
-              <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                <FaDownload className="text-gray-600" />
-              </button>
+                <button
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  onClick={exportToExcel}
+                  title="Download Excel (All Data)"
+                >
+                  <FaDownload className="text-gray-600" />
+                </button>
+              </div>
+
+              {/* Filter Count */}
+              {(filters.district || filters.status || filters.priority || filters.verified) && (
+                <div className="text-sm text-gray-600">
+                  {filteredDonations.length} of {donations.length} requests match filters
+                  <button
+                    onClick={clearFilters}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border-t border-gray-200 pt-4"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      District
+                    </label>
+                    <select
+                      value={filters.district}
+                      onChange={(e) => handleFilterChange('district', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                    >
+                      <option value="">All Districts</option>
+                      {districts.map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                    >
+                      <option value="">All Status</option>
+                      {statusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Priority
+                    </label>
+                    <select
+                      value={filters.priority}
+                      onChange={(e) => handleFilterChange('priority', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                    >
+                      <option value="">All Priorities</option>
+                      {[1, 2, 3, 4, 5].map((priority) => (
+                        <option key={priority} value={priority}>
+                          Level {priority}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Verification
+                    </label>
+                    <select
+                      value={filters.verified}
+                      onChange={(e) => handleFilterChange('verified', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                    >
+                      <option value="">All</option>
+                      <option value="true">Verified Only</option>
+                      <option value="false">Not Verified</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
 
@@ -631,14 +1074,14 @@ function DonationRequests() {
           )}
         </AnimatePresence>
 
-        {/* Donations Table */}
+        {/* Donations Table - Responsive */}
         <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
+          <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
               <h3 className="text-lg font-semibold text-gray-800">
                 All Donation Requests
                 <span className="ml-2 text-sm font-normal text-gray-600">
-                  ({pagination.totalItems} requests)
+                  ({filteredDonations.length} requests on this page)
                 </span>
               </h3>
               <div className="text-sm text-gray-500">
@@ -651,64 +1094,96 @@ function DonationRequests() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     No
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    WhatsApp
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th 
+                    className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      {sortConfig.key === 'name' && (
+                        sortConfig.direction === 'asc' ? 
+                        <FaArrowUp className="ml-1" /> : 
+                        <FaArrowDown className="ml-1" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     People
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Urgency
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                  <th 
+                    className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center">
+                      Created
+                      {sortConfig.key === 'createdAt' && (
+                        sortConfig.direction === 'asc' ? 
+                        <FaArrowUp className="ml-1" /> : 
+                        <FaArrowDown className="ml-1" />
+                      )}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {donations.map((donation, index) => (
+                {filteredDonations.map((donation, index) => (
                   <motion.tr
                     key={donation._id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="hover:bg-blue-50 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {(pagination.currentPage - 1) * pagination.itemsPerPage +
                         index +
                         1}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => shareToWhatsApp(donation)}
+                        className="p-2 text-green-600 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
+                        title="Share via WhatsApp"
+                      >
+                        <FaWhatsapp className="h-5 w-5" />
+                      </button>
+                    </td>
+                    <td className="px-4 md:px-6 py-4">
                       <div className="font-medium text-gray-900">
                         {formatName(donation.name) || "Not mentioned"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       {donation.phone && donation.phone.length > 0 && (
                         <div className="flex items-center text-gray-600">
                           <FaPhone className="h-3 w-3 mr-2 text-blue-500" />
-                          <span className="font-medium">
+                          <span className="font-medium text-sm">
                             {donation.phone[0]}
                           </span>
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 md:px-6 py-4">
                       <div className="font-medium text-gray-900">
                         {donation.district}
                       </div>
@@ -716,7 +1191,7 @@ function DonationRequests() {
                         {donation.address}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <FaUsers className="h-3 w-3 mr-2 text-green-500" />
                         <span className="text-sm font-medium">
@@ -724,7 +1199,7 @@ function DonationRequests() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(
                           donation.priority
@@ -733,10 +1208,10 @@ function DonationRequests() {
                         Level {donation.priority}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                       <div className="space-y-1">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                             donation.status
                           )}`}
                         >
@@ -750,11 +1225,11 @@ function DonationRequests() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(donation.createdAt)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-1 md:space-x-2">
                         <button
                           onClick={() => openViewModal(donation)}
                           className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
@@ -786,7 +1261,7 @@ function DonationRequests() {
               </tbody>
             </table>
 
-            {donations.length === 0 && (
+            {filteredDonations.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-400 mb-4">
                   <FaSearch className="h-12 w-12 mx-auto" />
@@ -795,16 +1270,29 @@ function DonationRequests() {
                   No donation requests found
                 </h3>
                 <p className="text-gray-600">
-                  Try adjusting your search or add a new donation request
+                  {searchKey || Object.values(filters).some(v => v) 
+                    ? "Try adjusting your search or filters"
+                    : "Add a new donation request to get started"}
                 </p>
+                {(searchKey || Object.values(filters).some(v => v)) && (
+                  <button
+                    onClick={() => {
+                      handleSearchReset();
+                      clearFilters();
+                    }}
+                    className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all"
+                  >
+                    Reset Search & Filters
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* Pagination */}
+          {/* Pagination - Responsive */}
           {pagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
+            <div className="px-4 md:px-6 py-4 border-t border-gray-200">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="text-sm text-gray-700">
                   Showing{" "}
                   {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}{" "}
@@ -815,7 +1303,7 @@ function DonationRequests() {
                   )}{" "}
                   of {pagination.totalItems} requests
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center md:justify-end space-x-2">
                   <button
                     onClick={() => handlePageChange(pagination.currentPage - 1)}
                     disabled={pagination.currentPage === 1}
@@ -825,24 +1313,24 @@ function DonationRequests() {
                         : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
                     }`}
                   >
-                    Previous
+                    Prev
                   </button>
 
                   {Array.from(
-                    { length: Math.min(5, pagination.totalPages) },
+                    { length: Math.min(3, pagination.totalPages) },
                     (_, i) => {
                       let pageNum;
-                      if (pagination.totalPages <= 5) {
+                      if (pagination.totalPages <= 3) {
                         pageNum = i + 1;
-                      } else if (pagination.currentPage <= 3) {
+                      } else if (pagination.currentPage <= 2) {
                         pageNum = i + 1;
                       } else if (
                         pagination.currentPage >=
-                        pagination.totalPages - 2
+                        pagination.totalPages - 1
                       ) {
-                        pageNum = pagination.totalPages - 4 + i;
+                        pageNum = pagination.totalPages - 2 + i;
                       } else {
-                        pageNum = pagination.currentPage - 2 + i;
+                        pageNum = pagination.currentPage - 1 + i;
                       }
 
                       return (
@@ -1023,32 +1511,114 @@ function DonationRequests() {
                     </div>
                   </div>
 
-                  {/* Aid Requirements */}
+                  {/* Aid Requirements - MANUAL ADDITION */}
                   <div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
                       Aid Requirements
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (Add requirements one by one)
+                      </span>
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {aidCategories.map((category) => (
-                        <label
-                          key={category.value}
-                          className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                        >
+                    
+                    {/* Input for new requirement */}
+                    <div className="flex gap-2 mb-4">
+                      <div className="flex-1">
+                        <div className="relative">
                           <input
-                            type="checkbox"
-                            checked={formData.requirements.includes(
-                              category.value
-                            )}
-                            onChange={() =>
-                              handleRequirementToggle(category.value)
-                            }
-                            className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                            type="text"
+                            name="newRequirement"
+                            value={formData.newRequirement}
+                            onChange={(e) => setFormData({...formData, newRequirement: e.target.value})}
+                            onKeyPress={handleRequirementKeyPress}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                            placeholder="Type a requirement (e.g., Food, Water, Medicine) and press Enter or click +"
                           />
-                          <span className="ml-3 text-sm text-gray-700">
-                            {category.label}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddRequirement}
+                        disabled={!formData.newRequirement.trim()}
+                        className={`px-4 py-2.5 rounded-lg flex items-center justify-center transition-all ${
+                          formData.newRequirement.trim()
+                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
+                        title="Add requirement"
+                      >
+                        <FaPlus className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Display added requirements */}
+                    {formData.requirements.length > 0 ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            Added Requirements ({formData.requirements.length})
                           </span>
-                        </label>
-                      ))}
+                          {formData.requirements.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearRequirements}
+                              className="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {formData.requirements.map((requirement, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 rounded-lg border border-blue-200"
+                            >
+                              <span className="text-sm font-medium">{requirement}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRequirement(index)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-100 p-1 rounded-full transition-colors"
+                                title="Remove"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        <FaPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm">
+                          No requirements added yet. Type above and click + to add.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Quick Suggestions */}
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Quick add suggestions:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {requirementSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleAddSuggestion(suggestion)}
+                            disabled={formData.requirements.includes(suggestion)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              formData.requirements.includes(suggestion)
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-green-50 to-teal-50 text-green-700 border border-green-200 hover:from-green-100 hover:to-teal-100 hover:border-green-300"
+                            }`}
+                          >
+                            {suggestion}
+                            {formData.requirements.includes(suggestion) && (
+                              <span className="ml-1 text-green-500">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -1122,17 +1692,11 @@ function DonationRequests() {
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                         >
-                          <option value="Not yet received">
-                            Not yet received
-                          </option>
-                          <option value="Linked a supplier">
-                            Linked a supplier
-                          </option>
-                          <option value="Received">Received</option>
-                          <option value="Already received">
-                            Already received
-                          </option>
-                          <option value="FAKE">FAKE</option>
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="flex items-center">
@@ -1211,8 +1775,8 @@ function DonationRequests() {
               </div>
 
               <div className="p-6">
-                {/* Same form structure as Add Modal */}
                 <div className="space-y-6">
+                  {/* Basic Information */}
                   <div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
                       Basic Information
@@ -1244,9 +1808,6 @@ function DonationRequests() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Continue with same form structure as Add Modal... */}
-                  {/* For brevity, I'm showing the structure but you should copy the complete form from Add Modal */}
 
                   {/* Location Information */}
                   <div>
@@ -1323,32 +1884,114 @@ function DonationRequests() {
                     </div>
                   </div>
 
-                  {/* Aid Requirements */}
+                  {/* Aid Requirements - MANUAL ADDITION */}
                   <div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
                       Aid Requirements
+                      <span className="text-sm font-normal text-gray-500 ml-2">
+                        (Add requirements one by one)
+                      </span>
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {aidCategories.map((category) => (
-                        <label
-                          key={category.value}
-                          className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                        >
+                    
+                    {/* Input for new requirement */}
+                    <div className="flex gap-2 mb-4">
+                      <div className="flex-1">
+                        <div className="relative">
                           <input
-                            type="checkbox"
-                            checked={formData.requirements.includes(
-                              category.value
-                            )}
-                            onChange={() =>
-                              handleRequirementToggle(category.value)
-                            }
-                            className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                            type="text"
+                            name="newRequirement"
+                            value={formData.newRequirement}
+                            onChange={(e) => setFormData({...formData, newRequirement: e.target.value})}
+                            onKeyPress={handleRequirementKeyPress}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                            placeholder="Type a requirement (e.g., Food, Water, Medicine) and press Enter or click +"
                           />
-                          <span className="ml-3 text-sm text-gray-700">
-                            {category.label}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddRequirement}
+                        disabled={!formData.newRequirement.trim()}
+                        className={`px-4 py-2.5 rounded-lg flex items-center justify-center transition-all ${
+                          formData.newRequirement.trim()
+                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
+                        title="Add requirement"
+                      >
+                        <FaPlus className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Display added requirements */}
+                    {formData.requirements.length > 0 ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">
+                            Added Requirements ({formData.requirements.length})
                           </span>
-                        </label>
-                      ))}
+                          {formData.requirements.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleClearRequirements}
+                              className="text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                            >
+                              Clear All
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {formData.requirements.map((requirement, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 rounded-lg border border-blue-200"
+                            >
+                              <span className="text-sm font-medium">{requirement}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRequirement(index)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-100 p-1 rounded-full transition-colors"
+                                title="Remove"
+                              >
+                                <FaTimes className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        <FaPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm">
+                          No requirements added yet. Type above and click + to add.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Quick Suggestions */}
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Quick add suggestions:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {requirementSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleAddSuggestion(suggestion)}
+                            disabled={formData.requirements.includes(suggestion)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              formData.requirements.includes(suggestion)
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-green-50 to-teal-50 text-green-700 border border-green-200 hover:from-green-100 hover:to-teal-100 hover:border-green-300"
+                            }`}
+                          >
+                            {suggestion}
+                            {formData.requirements.includes(suggestion) && (
+                              <span className="ml-1 text-green-500">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -1420,17 +2063,11 @@ function DonationRequests() {
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                         >
-                          <option value="Not yet received">
-                            Not yet received
-                          </option>
-                          <option value="Linked a supplier">
-                            Linked a supplier
-                          </option>
-                          <option value="Received">Received</option>
-                          <option value="Already received">
-                            Already received
-                          </option>
-                          <option value="FAKE">FAKE</option>
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="flex items-center">
@@ -1497,6 +2134,13 @@ function DonationRequests() {
                     Donation Request Details
                   </h3>
                   <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => shareToWhatsApp(selectedDonation)}
+                      className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                      title="Share via WhatsApp"
+                    >
+                      <FaWhatsapp className="h-5 w-5" />
+                    </button>
                     <button
                       onClick={() => openEditModal(selectedDonation)}
                       className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"

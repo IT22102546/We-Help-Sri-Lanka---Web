@@ -58,6 +58,7 @@ const donationRequestSchema = new mongoose.Schema(
         "Linked a supplier",
         "Received",
         "Already received",
+        "Complete",
         "FAKE",
         "",
       ],
