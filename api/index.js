@@ -6,6 +6,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import staffRoutes from "./routes/staff.routes.js";
+import adminRoutes from "./routes/admin.route.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import donationRoute from "./routes/donation.route.js";
@@ -88,6 +89,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/donation-requests", donationRoute);
+app.use("/api/admin", adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

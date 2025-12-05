@@ -17,7 +17,7 @@ function Header() {
   
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
+      if (window.scrollY > 30) {
         setScrolled(true);
       } else {
         setScrolled(false);
@@ -59,8 +59,8 @@ function Header() {
 
   return (
     <header
-      className={`relative h-[80vh] sm:h-[90vh] bg-cover bg-center transition-all duration-500 ${
-        scrolled && location.pathname === "/" ? "h-[70vh] sm:h-[80vh]" : ""
+      className={`relative h-[50vh] sm:h-[55vh] md:h-[60vh] bg-cover bg-center transition-all duration-300 ${
+        scrolled && location.pathname === "/" ? "h-[45vh] sm:h-[50vh] md:h-[55vh]" : ""
       }`}
       style={{
         backgroundImage: `url(${location.pathname === "/services" || location.pathname === "/about" ? service : homeTile})`,
@@ -70,26 +70,26 @@ function Header() {
       {/* Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-50"></div>
 
-      {/* Navbar */}
-      <nav className={`absolute top-0 left-0 w-full px-4 sm:px-6 md:px-12 lg:px-52 py-4 sm:py-6 md:py-12 flex justify-between items-center z-10 transition-all duration-300`}>
+      {/* Navbar - More compact */}
+      <nav className={`absolute top-0 left-0 w-full px-4 sm:px-6 md:px-8 lg:px-12 py-3 sm:py-4 flex justify-between items-center z-10 transition-all duration-300 bg-black/30 backdrop-blur-sm`}>
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1 sm:gap-2">
           <img
             src={logo}
             alt="logo"
-            className={`h-12 w-12 sm:h-14 sm:w-14 md:h-[68px] md:w-[68px] transition-all duration-300 ${
-              scrolled ? "h-10 w-10 sm:h-12 sm:w-12" : ""
+            className={`h-10 w-10 sm:h-12 sm:w-12 transition-all duration-300 ${
+              scrolled ? "h-8 w-8 sm:h-10 sm:w-10" : ""
             }`}
           />
-          <h1 className={`font-Sacremento text-2xl sm:text-3xl md:text-4xl font-normal text-white transition-all duration-300 ${
-            scrolled ? "text-xl sm:text-2xl" : ""
+          <h1 className={`font-Sacremento text-xl sm:text-2xl md:text-3xl font-normal text-white transition-all duration-300 ${
+            scrolled ? "text-lg sm:text-xl" : ""
           }`}>
             Viwahaa
           </h1>
         </Link>
 
         {/* Nav Links (for large screens) */}
-        <ul className="hidden md:flex space-x-4 lg:space-x-6 text-white font-normal text-sm md:text-[14px] tracking-wide">
+        <ul className="hidden md:flex space-x-3 lg:space-x-4 text-white font-normal text-sm tracking-wide">
           <Link to="/">
             <li className="hover:text-pink-300 cursor-pointer px-2 py-1">HOME</li>
           </Link>
@@ -122,22 +122,22 @@ function Header() {
           className="md:hidden text-white p-1"
           aria-label="Toggle menu"
         >
-          <Menu size={28} />
+          <Menu size={24} />
         </button>
       </nav>
 
       {/* Sidebar Menu (for mobile) */}
       {isMenuOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-20 flex justify-end md:hidden">
-          <div className="w-4/5 sm:w-72 bg-black h-full px-4 sm:px-6 py-8">
+          <div className="w-4/5 sm:w-64 bg-black h-full px-4 sm:px-6 py-6">
             <button
               onClick={toggleMenu}
               className="text-white absolute top-4 right-4 p-1"
               aria-label="Close menu"
             >
-              <X size={32} />
+              <X size={28} />
             </button>
-            <ul className="flex flex-col items-start space-y-6 mt-12 text-white font-semibold text-lg sm:text-xl">
+            <ul className="flex flex-col items-start space-y-4 mt-10 text-white font-semibold text-base sm:text-lg">
               <Link to="/" onClick={toggleMenu} className="w-full">
                 <li className="hover:bg-gray-800 w-full px-4 py-2 rounded">HOME</li>
               </Link>
@@ -180,32 +180,32 @@ function Header() {
 
       {/* Conditional Content for Home Page */}
       {location.pathname === "/" && (
-        <div className={`absolute bottom-10 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-10 text-center text-white px-4 sm:px-6 md:px-12 w-full transition-all duration-500 ${
+        <div className={`absolute bottom-8 sm:bottom-12 md:bottom-16 left-1/2 transform -translate-x-1/2 z-10 text-center text-white px-4 sm:px-6 md:px-8 w-full transition-all duration-300 ${
           scrolled ? "bottom-1/2 -translate-y-1/2" : ""
         }`}>
-          <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-[75px] font-normal font-Sacremento mb-3 sm:mb-4 transition-all duration-500 ${
-            scrolled ? "text-2xl sm:text-3xl md:text-4xl mb-2" : ""
+          <h2 className={`text-2xl sm:text-3xl md:text-4xl lg:text-[45px] font-normal font-Sacremento mb-3 sm:mb-4 transition-all duration-300 ${
+            scrolled ? "text-xl sm:text-2xl md:text-3xl mb-2" : ""
           }`}>
             This is where you meet your life partner
           </h2>
-          <p className={`text-base sm:text-lg mb-4 sm:mb-6 font-workSans max-w-2xl mx-auto transition-all duration-500 ${
-            scrolled ? "text-sm sm:text-base mb-3 opacity-90" : ""
+          <p className={`text-sm sm:text-base mb-3 sm:mb-4 font-workSans max-w-2xl mx-auto transition-all duration-300 ${
+            scrolled ? "text-xs sm:text-sm mb-2 opacity-90" : ""
           }`}>
             We verify every profile manually so that you know you are dealing
             with real people.
           </p>
-          <div className={`flex flex-col gap-3 items-center justify-center md:flex-row md:gap-5 transition-all duration-500 ${
+          <div className={`flex flex-col gap-3 items-center justify-center md:flex-row md:gap-4 transition-all duration-300 ${
             scrolled ? "scale-90" : ""
           }`}>
             {!currentUser?.user ? (
               <>
                 <Link to="/sign-up" className="w-full sm:w-auto">
-                  <button className="bg-orange-500 text-white px-4 sm:px-6 py-2 rounded-full hover:bg-orange-600 font-workSans w-full sm:w-auto">
+                  <button className="bg-orange-500 text-white px-4 sm:px-5 py-2 rounded-full hover:bg-orange-600 font-workSans w-full sm:w-auto text-sm sm:text-base">
                     REGISTER
                   </button>
                 </Link>
                 <Link to="/sign-in" className="w-full sm:w-auto">
-                  <button className="bg-transparent border-2 border-white text-white px-4 sm:px-6 py-2 rounded-full hover:bg-white hover:border-orange-600 hover:text-black font-workSans w-full sm:w-auto">
+                  <button className="bg-transparent border-2 border-white text-white px-4 sm:px-5 py-2 rounded-full hover:bg-white hover:border-orange-600 hover:text-black font-workSans w-full sm:w-auto text-sm sm:text-base">
                     LOGIN
                   </button>
                 </Link>
@@ -213,13 +213,13 @@ function Header() {
             ) : (
               <>
                 <Link to="/customer-profile" className="w-full sm:w-auto">
-                  <button className="bg-orange-500 text-white px-4 sm:px-6 py-2 rounded-full hover:bg-orange-600 font-workSans w-full sm:w-auto">
+                  <button className="bg-orange-500 text-white px-4 sm:px-5 py-2 rounded-full hover:bg-orange-600 font-workSans w-full sm:w-auto text-sm sm:text-base">
                     Go to Profile
                   </button>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="bg-transparent border-2 border-white text-white px-4 sm:px-6 py-2 rounded-full hover:bg-white hover:border-orange-600 hover:text-black font-workSans w-full sm:w-auto"
+                  className="bg-transparent border-2 border-white text-white px-4 sm:px-5 py-2 rounded-full hover:bg-white hover:border-orange-600 hover:text-black font-workSans w-full sm:w-auto text-sm sm:text-base"
                 >
                   Sign Out
                 </button>
@@ -232,16 +232,16 @@ function Header() {
       {/* Centered Title */}
       {location.pathname !== "/" && (
         <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 w-full px-4 text-center transition-all duration-300 ${
-          scrolled ? "top-1/3" : ""
+          scrolled ? "top-40" : ""
         }`}>
-          <h1 className={`text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-CretinaBold transition-all duration-300 font-Sacremento ${
-            scrolled ? "text-3xl sm:text-4xl md:text-5xl" : ""
+          <h1 className={`text-white text-3xl sm:text-4xl md:text-5xl font-CretinaBold transition-all duration-300 font-Sacremento ${
+            scrolled ? "text-2xl sm:text-3xl md:text-4xl" : ""
           }`}>
             {getPageTitle(location.pathname)}
           </h1>
           {/* Member ID display for profile page */}
           {location.pathname === "/customer-profile" && currentUser?.user?.member_id && (
-            <p className="text-white text-lg sm:text-xl mt-2 font-workSans">
+            <p className="text-white text-base sm:text-lg mt-2 font-workSans">
               Member ID: {currentUser.user.member_id}
             </p>
           )}
