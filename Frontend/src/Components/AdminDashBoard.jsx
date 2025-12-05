@@ -47,15 +47,6 @@ const AdminDashboard = () => {
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUserType(parsedUser.user_type_id);
-        } else if (localStorage.getItem('isStaff') === 'true') {
-          setUserType(3); // Staff user_type_id
-        } else if (localStorage.getItem('isAdmin') === 'true') {
-          setUserType(1); // Admin user_type_id
-        } else {
-          const userTypeId = localStorage.getItem('userTypeId');
-          if (userTypeId) {
-            setUserType(parseInt(userTypeId));
-          }
         }
       } catch (error) {
         console.error("Error checking user type:", error);
@@ -92,14 +83,12 @@ const AdminDashboard = () => {
         try {
           setDashboardData((prev) => ({ ...prev, loading: true }));
           
-          // For staff users, don't fetch earnings data
           const fetchPromises = [
             fetch("/api/admin/profiles"),
             fetch("/api/admin/bookings/count"),
             fetch("/api/admin/interests/count"),
           ];
 
-          // Only admin users fetch earnings data
           if (isAdmin) {
             fetchPromises.push(fetch("/api/admin/earnings"));
           }
@@ -172,18 +161,6 @@ const AdminDashboard = () => {
     }));
   };
 
-  // Handle search input changes
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setDashboardData((prev) => ({ ...prev, searchKey: value }));
-  };
-
-  const handleSearchKeyUp = (e) => {
-    if (e.key === "Enter") {
-      searchCustomers();
-    }
-  };
-
   // Pagination logic
   const paginatedCustomers = useMemo(() => {
     const startIndex = (dashboardData.currentPage - 1) * dashboardData.itemsPerPage;
@@ -214,239 +191,240 @@ const AdminDashboard = () => {
   const sidebarVariants = {
     open: {
       x: 0,
-      width: "13rem",
+      width: "16rem",
       transition: { type: "spring", stiffness: 300, damping: 30 },
     },
     closed: {
       x: "-100%",
-      width: "13rem",
+      width: "16rem",
       transition: { type: "spring", stiffness: 300, damping: 30 },
     },
   };
 
   const contentVariants = {
-    open: { marginLeft: "13rem" },
+    open: { marginLeft: "16rem" },
     closed: { marginLeft: "0" },
   };
 
-  // Skeleton loading component
+  // Skeleton loading component with theme
   const renderSkeleton = () => (
-    <div className="p-4 mt-16">
-      <div className="mb-4">
-        <Skeleton height={30} width={200} />
-        <Skeleton height={20} width={150} />
+    <div className="p-4 md:p-6 pt-20 md:pt-24">
+      <div className="mb-6">
+        <Skeleton height={32} width={200} baseColor="#dbeafe" highlightColor="#e0f2fe" />
+        <Skeleton height={20} width={150} baseColor="#dbeafe" highlightColor="#e0f2fe" />
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-4`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-6`}>
         {[1, 2, 3, ...(isAdmin ? [4] : [])].map((item) => (
-          <div key={item} className="bg-white rounded-lg shadow p-4">
-            <Skeleton height={80} />
+          <div key={item} className="bg-white rounded-xl shadow p-4">
+            <Skeleton height={80} baseColor="#dbeafe" highlightColor="#e0f2fe" />
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b">
-          <Skeleton height={40} />
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <Skeleton height={40} baseColor="#dbeafe" highlightColor="#e0f2fe" />
         </div>
-
-        <div className="p-4 border-b">
-          <Skeleton height={30} width={150} />
-        </div>
-
-        <div className="overflow-x-auto">
-          <Skeleton height={300} />
+        <div className="p-4">
+          <Skeleton height={300} baseColor="#dbeafe" highlightColor="#e0f2fe" />
         </div>
       </div>
     </div>
   );
 
   const renderDashboardContent = () => (
-    <div className="p-4 mt-16">
+    <div className="p-4 md:p-6 pt-20 md:pt-24">
       {/* Page Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600">Welcome to Viwahaa</p>
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard</h1>
+        <p className="text-gray-600">Welcome to Viwahaa Relief Operations</p>
       </div>
 
       {/* Stats Cards */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-4`}>
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-6`}>
         {/* Profile Count Card */}
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">{dashboardData.profileCount}</h2>
+              <h2 className="text-xl font-semibold text-gray-800">{dashboardData.profileCount}</h2>
               <p className="text-gray-600">Profiles</p>
               <p className="text-sm text-gray-500 mt-1">Total Customers</p>
             </div>
-            <FaUser className="text-3xl text-purple-500" />
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+              <FaUser className="text-2xl text-white" />
+            </div>
           </div>
         </div>
 
         {/* Bookings Count Card */}
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">{dashboardData.bookingsCount}</h2>
+              <h2 className="text-xl font-semibold text-gray-800">{dashboardData.bookingsCount}</h2>
               <p className="text-gray-600">Bookings</p>
               <p className="text-sm text-gray-500 mt-1">Total Plan Request</p>
             </div>
-            <FaCalendarAlt className="text-3xl text-green-500" />
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
+              <FaCalendarAlt className="text-2xl text-white" />
+            </div>
           </div>
         </div>
 
         {/* Interest Count Card */}
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">{dashboardData.intrestCount}</h2>
+              <h2 className="text-xl font-semibold text-gray-800">{dashboardData.intrestCount}</h2>
               <p className="text-gray-600">Interested</p>
               <p className="text-sm text-gray-500 mt-1">People Interested</p>
             </div>
-            <FaHeart className="text-3xl text-red-500" />
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center">
+              <FaHeart className="text-2xl text-white" />
+            </div>
           </div>
         </div>
 
         {/* Earnings Card - Only for Admin */}
         {isAdmin && (
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold">{formattedEarnings}</h2>
+                <h2 className="text-xl font-semibold text-gray-800">{formattedEarnings}</h2>
                 <p className="text-gray-600">Total Earnings</p>
                 <p className="text-sm text-gray-500 mt-1">Revenue</p>
               </div>
-              <FaMoneyBill className="text-3xl text-blue-500" />
+              <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                <FaMoneyBill className="text-2xl text-white" />
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Customers Section */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-xl shadow overflow-hidden">
         {/* Search */}
-        <div className="p-4 border-b">
-          <div className="relative w-full max-w-lg mx-auto">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
             <input
               type="text"
-              className="w-full pl-4 pr-12 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Search customers..."
+              className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search customers by name, email, or phone..."
               value={dashboardData.searchKey}
-              onChange={handleSearchChange}
-              onKeyUp={handleSearchKeyUp}
+              onChange={(e) => setDashboardData(prev => ({ ...prev, searchKey: e.target.value }))}
+              onKeyUp={(e) => e.key === "Enter" && searchCustomers()}
             />
             <button
               onClick={searchCustomers}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 focus:outline-none"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-500 to-green-500 text-white p-2 rounded-full hover:opacity-90 focus:outline-none"
             >
               <FaSearch className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Customers</h2>
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-800">Customers</h2>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <div className="bg-white shadow rounded-lg">
-            <table className="min-w-full table-auto">
-              <thead className="bg-gray-200">
-                <tr>
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  No
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Member ID
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Email
+                </th>
+                {isAdmin && (
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    No
+                    Number
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    Member ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    Email
-                  </th>
-                  {/* Contact Number Column - Only for Admin */}
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {paginatedCustomers.map((customer, index) => (
+                <tr key={customer.id} className="hover:bg-blue-50 transition-colors">
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {(dashboardData.currentPage - 1) * dashboardData.itemsPerPage + index + 1}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {customer.member_id}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {customer.first_name} {customer.last_name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {customer.email}
+                  </td>
                   {isAdmin && (
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                      Number
-                    </th>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {customer.contact_no}
+                    </td>
                   )}
                 </tr>
-              </thead>
-              <tbody className="text-sm">
-                {paginatedCustomers.map((customer, index) => (
-                  <tr key={customer.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      {(dashboardData.currentPage - 1) * dashboardData.itemsPerPage + index + 1}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {customer.member_id}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {customer.first_name} {customer.last_name}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {customer.email}
-                    </td>
-                    {/* Contact Number Data - Only for Admin */}
-                    {isAdmin && (
-                      <td className="px-4 py-3 text-gray-500">
-                        {customer.contact_no}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Pagination controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={() => handlePageChange(Math.max(1, dashboardData.currentPage - 1))}
-              disabled={dashboardData.currentPage === 1}
-              className="mx-1 px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-            >
-              <FaChevronLeft />
-            </button>
+          <div className="p-4 border-t border-gray-200 flex justify-center">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handlePageChange(Math.max(1, dashboardData.currentPage - 1))}
+                disabled={dashboardData.currentPage === 1}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaChevronLeft className="h-4 w-4" />
+              </button>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (dashboardData.currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (dashboardData.currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = dashboardData.currentPage - 2 + i;
-              }
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (dashboardData.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (dashboardData.currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = dashboardData.currentPage - 2 + i;
+                }
 
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => handlePageChange(pageNum)}
-                  className={`mx-1 px-3 py-1 rounded ${
-                    dashboardData.currentPage === pageNum
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 rounded-lg ${
+                      dashboardData.currentPage === pageNum
+                        ? "bg-gradient-to-r from-blue-500 to-green-500 text-white"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
 
-            <button
-              onClick={() => handlePageChange(Math.min(totalPages, dashboardData.currentPage + 1))}
-              disabled={dashboardData.currentPage === totalPages}
-              className="mx-1 px-3 py-1 rounded bg-gray-200 disabled:opacity-50"
-            >
-              <FaChevronRight />
-            </button>
+              <button
+                onClick={() => handlePageChange(Math.min(totalPages, dashboardData.currentPage + 1))}
+                disabled={dashboardData.currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FaChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -471,7 +449,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       {/* Animated Sidebar */}
       <AnimatePresence>
         {isSidebarOpen && (
