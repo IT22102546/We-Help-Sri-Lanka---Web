@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaCalendarAlt, FaHeart, FaHome, FaUsers, FaCrown } from "react-icons/fa";
-import logo from '../assets/Logo/logo.png';
+import {
+  FaUser,
+  FaCalendarAlt,
+  FaHeart,
+  FaHome,
+  FaUsers,
+  FaCrown,
+} from "react-icons/fa";
+import logo from "../assets/Logo/logo.png";
 
 const DashSideBar = ({ onNavItemClick, activeSection }) => {
   const [userType, setUserType] = useState(null);
@@ -11,7 +18,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
   useEffect(() => {
     const checkUserType = () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = localStorage.getItem("user");
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUserType(parsedUser.user_type_id);
@@ -28,9 +35,8 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
   }, []);
 
   // Check if user is SuperAdmin
-  const isSuperAdmin = userRole === 'superAdmin' || 
-                      userRole === 'SuperAdmin' || 
-                      userType === 1;
+  const isSuperAdmin =
+    userRole === "superAdmin" || userRole === "SuperAdmin" || userType === 1;
 
   // Check if user is Staff
   const isStaff = userType === 3;
@@ -56,7 +62,9 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         {/* Logo Container */}
         <div className="relative mb-3">
           {/* Background with proper aspect ratio for rectangular logo */}
-          <div className={`flex items-center justify-center p-2 ${getStatusColor()} rounded-lg shadow-sm`}>
+          <div
+            className={`flex items-center justify-center p-2 ${getStatusColor()} rounded-lg shadow-sm`}
+          >
             {/* Logo Image - Rectangular version */}
             <img
               src={logo}
@@ -71,15 +79,15 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
             </div>
           )}
         </div>
-        
+
         {/* User Role Title */}
         <span className="text-lg font-semibold text-gray-800">
-          {isSuperAdmin ? 'Super Admin' : isStaff ? 'Staff' : 'Admin'}
+          {isSuperAdmin ? "Super Admin" : isStaff ? "Staff" : "Admin"}
         </span>
-        
+
         {/* Organization Name */}
         <span className="text-sm text-gray-600 mt-1">We Help Sri Lanka</span>
-        
+
         {/* Relief Operations Tagline */}
         <span className="text-xs text-gray-500 mt-1">Relief Operations</span>
       </div>
@@ -113,12 +121,12 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
             <span className="font-medium">Admin Management</span>
           </button>
         )}
-        
+
         {/* Donation Request Link */}
         <button
-          onClick={() => onNavItemClick("profile")}
+          onClick={() => onNavItemClick("bookings")}
           className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
-            activeSection === "profile"
+            activeSection === "bookings"
               ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
               : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
           }`}
@@ -126,11 +134,6 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           <FaUser className="mr-3 h-5 w-5" />
           <span className="font-medium">Donation Request</span>
         </button>
-
-        {/* Package Bookings Link - Only show if user is NOT Staff */}
-    
-    
-     
       </nav>
 
       {/* User Info at Bottom - Updated for rectangular logo */}
@@ -138,7 +141,9 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         <div className="flex items-center space-x-3">
           {/* User Avatar with Logo - Rectangular version */}
           <div className="relative">
-            <div className={`flex items-center justify-center p-1 ${getStatusColor()} rounded-lg overflow-hidden`}>
+            <div
+              className={`flex items-center justify-center p-1 ${getStatusColor()} rounded-lg overflow-hidden`}
+            >
               <img
                 src={logo}
                 alt="User Avatar"
@@ -152,10 +157,10 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
               </div>
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 truncate">
-              {isSuperAdmin ? 'Super Admin' : isStaff ? 'Staff' : 'Admin'}
+              {isSuperAdmin ? "Super Admin" : isStaff ? "Staff" : "Admin"}
             </p>
             <p className="text-xs text-gray-500 truncate">We Help Sri Lanka</p>
           </div>

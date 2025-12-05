@@ -9,6 +9,7 @@ import staffRoutes from "./routes/staff.routes.js";
 import adminRoutes from "./routes/admin.route.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import donationRoute from "./routes/donation.route.js";
 
 // For ES6 module dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -18,26 +19,27 @@ dotenv.config();
 
 // Validate environment variables
 if (!process.env.MONGO) {
-  console.error('❌ MONGO environment variable is not set');
+  console.error("❌ MONGO environment variable is not set");
   process.exit(1);
 }
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGO;
-console.log('🔧 Attempting to connect to MongoDB...');
-console.log(`Database: ${MONGODB_URI.split('/').pop().split('?')[0]}`);
+console.log("🔧 Attempting to connect to MongoDB...");
+console.log(`Database: ${MONGODB_URI.split("/").pop().split("?")[0]}`);
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose
+  .connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => {
-    console.log('✅ Connected to MongoDB');
+    console.log("✅ Connected to MongoDB");
     console.log(`📊 Database: ${mongoose.connection.db.databaseName}`);
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-    console.log('💡 Connection string used:', MONGODB_URI);
+    console.error("❌ MongoDB connection error:", err.message);
+    console.log("💡 Connection string used:", MONGODB_URI);
     process.exit(1);
   });
 
@@ -49,7 +51,7 @@ app.use(express.json());
 
 // CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: "http://localhost:5173",
   credentials: true,
 };
 app.use(cors(corsOptions));
@@ -59,10 +61,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.get("/", (req, res) => {
-  res.status(200).json({ 
-    success: true, 
+  res.status(200).json({
+    success: true,
     message: "We Help Sri Lanka Backend is running successfully!",
-    database: mongoose.connection.db?.databaseName || "Not connected"
+    database: mongoose.connection.db?.databaseName || "Not connected",
   });
 });
 
@@ -70,31 +72,32 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   const dbStatus = mongoose.connection.readyState;
   const statusMap = {
-    0: 'disconnected',
-    1: 'connected',
-    2: 'connecting',
-    3: 'disconnecting'
+    0: "disconnected",
+    1: "connected",
+    2: "connecting",
+    3: "disconnecting",
   };
-  
+
   res.status(200).json({
     success: dbStatus === 1,
-    message: `Database status: ${statusMap[dbStatus] || 'unknown'}`,
+    message: `Database status: ${statusMap[dbStatus] || "unknown"}`,
     database: mongoose.connection.db?.databaseName,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/donation-requests", donationRoute);
 app.use("/api/admin", adminRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  
+
   console.error("Error:", err);
-  
+
   return res.status(statusCode).json({
     success: false,
     message,

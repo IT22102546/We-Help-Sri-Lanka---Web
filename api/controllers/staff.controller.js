@@ -5,21 +5,11 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
-
-
 dotenv.config();
 
 // Add a new user (staff member)
 export const add = async (req, res, next) => {
-  const {
-    email,
-    password,
-    name,
-    status,
-    tp,
-    permissions,
-    isActive
-  } = req.body;
+  const { email, password, name, status, tp, permissions, isActive } = req.body;
 
   try {
     const existingUser = await Staff.findOne({ email });
@@ -33,8 +23,10 @@ export const add = async (req, res, next) => {
       );
     }
 
-    if (!email || !password || !name  || !tp) {
-      return next(errorHandler(409, "Email, password, name, and status are required!"));
+    if (!email || !password || !name || !tp) {
+      return next(
+        errorHandler(409, "Email, password, name, and status are required!")
+      );
     }
 
     // Create new user
@@ -43,9 +35,9 @@ export const add = async (req, res, next) => {
       password,
       name,
       tp,
-      status:"admin",
+      status: "admin",
       permissions: permissions || [],
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     const savedUser = await newUser.save();
@@ -74,7 +66,12 @@ export const adminsignin = async (req, res, next) => {
 
     // Check if user is active
     if (!validUser.isActive) {
-      return next(errorHandler(403, "Account is deactivated. Please contact administrator."));
+      return next(
+        errorHandler(
+          403,
+          "Account is deactivated. Please contact administrator."
+        )
+      );
     }
 
     // Use the comparePassword method from the User model
@@ -82,13 +79,13 @@ export const adminsignin = async (req, res, next) => {
     if (!validPassword) return next(errorHandler(400, "Invalid Credentials!"));
 
     const token = jwt.sign(
-      { 
-        id: validUser._id, 
+      {
+        id: validUser._id,
         status: validUser.status,
-        permissions: validUser.permissions 
+        permissions: validUser.permissions,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
 
     // Remove password from response
@@ -98,17 +95,17 @@ export const adminsignin = async (req, res, next) => {
     const expiryDate = new Date(Date.now() + 3600000); // 1 hour
 
     res
-      .cookie("access_token", token, { 
-        httpOnly: true, 
+      .cookie("access_token", token, {
+        httpOnly: true,
         expires: expiryDate,
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        sameSite: 'strict' // CSRF protection
+        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        sameSite: "strict", // CSRF protection
       })
       .status(200)
-      .json({ 
-        ...userResponse, 
+      .json({
+        ...userResponse,
         id: validUser._id,
-        accessToken: token // Also sending token in response body for client-side storage if needed
+        accessToken: token, // Also sending token in response body for client-side storage if needed
       });
   } catch (error) {
     next(error);
@@ -118,9 +115,10 @@ export const adminsignin = async (req, res, next) => {
 // Optional: Add a logout function
 export const usersignout = (req, res, next) => {
   try {
-    res.clearCookie('access_token')
+    res
+      .clearCookie("access_token")
       .status(200)
-      .json({ message: 'Signout successful!' });
+      .json({ message: "Signout successful!" });
   } catch (error) {
     next(error);
   }
@@ -135,30 +133,30 @@ export const getStaff = async (req, res, next) => {
     if (searchTerm) {
       queryOptions.$or = [
         { email: { $regex: searchTerm, $options: "i" } },
-        { name: { $regex: searchTerm, $options: "i" } }
+        { name: { $regex: searchTerm, $options: "i" } },
       ];
     }
-    
+
     // Filter by status
     if (status) {
       queryOptions.status = status;
     }
-    
+
     // Filter by active status
     if (isActive !== undefined) {
-      queryOptions.isActive = isActive === 'true';
+      queryOptions.isActive = isActive === "true";
     }
 
     // Get total count (without pagination for now, but can add later)
     const totalUsers = await Staff.countDocuments(queryOptions);
-    
+
     // Get users - exclude password field
-    const users = await Staff.find(queryOptions).select('-password');
-    
+    const users = await Staff.find(queryOptions).select("-password");
+
     res.status(200).json({
       users,
       total: totalUsers,
-      message: `Found ${totalUsers} user${totalUsers !== 1 ? 's' : ''}`
+      message: `Found ${totalUsers} user${totalUsers !== 1 ? "s" : ""}`,
     });
   } catch (error) {
     next(error);
@@ -211,7 +209,7 @@ export const updateStaff = async (req, res, next) => {
     if (!name || !email) {
       return res.status(400).json({
         success: false,
-        message: "Name and email are required"
+        message: "Name and email are required",
       });
     }
 
@@ -220,7 +218,7 @@ export const updateStaff = async (req, res, next) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid email format"
+        message: "Invalid email format",
       });
     }
 
@@ -230,7 +228,7 @@ export const updateStaff = async (req, res, next) => {
       if (!phoneRegex.test(tp)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid phone number format. Use 10 digits starting with 0"
+          message: "Invalid phone number format. Use 10 digits starting with 0",
         });
       }
     }
@@ -240,7 +238,7 @@ export const updateStaff = async (req, res, next) => {
     if (!existingStaff) {
       return res.status(404).json({
         success: false,
-        message: "Staff member not found"
+        message: "Staff member not found",
       });
     }
 
@@ -250,7 +248,7 @@ export const updateStaff = async (req, res, next) => {
       if (emailExists) {
         return res.status(400).json({
           success: false,
-          message: "Email already exists"
+          message: "Email already exists",
         });
       }
     }
@@ -259,7 +257,7 @@ export const updateStaff = async (req, res, next) => {
     const updateData = {
       name,
       email,
-      tp: tp || existingStaff.tp
+      tp: tp || existingStaff.tp,
     };
 
     // Only update password if provided
@@ -267,7 +265,7 @@ export const updateStaff = async (req, res, next) => {
       if (password.length < 6) {
         return res.status(400).json({
           success: false,
-          message: "Password must be at least 6 characters long"
+          message: "Password must be at least 6 characters long",
         });
       }
       updateData.password = bcrypt.hashSync(password, 10);
@@ -286,37 +284,36 @@ export const updateStaff = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Staff updated successfully",
-      staff: staffWithoutPassword
+      staff: staffWithoutPassword,
     });
-
   } catch (error) {
     console.error("Update staff error:", error);
-    
+
     // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: "Email already exists"
+        message: "Email already exists",
       });
     }
-    
+
     // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
       return res.status(400).json({
         success: false,
-        message: messages.join(', ')
+        message: messages.join(", "),
       });
     }
-    
+
     // Handle cast error (invalid ID)
-    if (error.name === 'CastError') {
+    if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
-        message: "Invalid staff ID format"
+        message: "Invalid staff ID format",
       });
     }
-    
+
     next(error);
   }
 };
@@ -375,7 +372,10 @@ export const updatestaffprofile = async (req, res, next) => {
 
 export const signout = (req, res, next) => {
   try {
-    res.clearCookie("access_token").status(200).json("User has been signed out");
+    res
+      .clearCookie("access_token")
+      .status(200)
+      .json("User has been signed out");
   } catch (error) {
     next(error);
   }

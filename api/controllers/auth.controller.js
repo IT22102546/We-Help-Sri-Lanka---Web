@@ -6,68 +6,68 @@ import User from "../models/user.model.js";
 export const adminSignIn = async (req, res, next) => {
   const { email, password } = req.body;
 
-  console.log('\n=== ADMIN LOGIN ATTEMPT ===');
-  console.log('Email:', email);
-  console.log('Password length:', password?.length);
+  console.log("\n=== ADMIN LOGIN ATTEMPT ===");
+  console.log("Email:", email);
+  console.log("Password length:", password?.length);
 
   if (!email || !password) {
-    console.log('Missing credentials');
-    return res.status(400).json({ 
+    console.log("Missing credentials");
+    return res.status(400).json({
       success: false,
-      message: "Email and password are required" 
+      message: "Email and password are required",
     });
   }
 
   try {
     // Find user by email
-    console.log('Looking for user:', email);
-    const user = await User.findOne({ email }).select('+password');
-    
+    console.log("Looking for user:", email);
+    const user = await User.findOne({ email }).select("+password");
+
     if (!user) {
-      console.log('❌ User not found in database');
-      return res.status(400).json({ 
+      console.log("❌ User not found in database");
+      return res.status(400).json({
         success: false,
-        message: "Invalid email or password!" 
+        message: "Invalid email or password!",
       });
     }
 
-    console.log('✅ User found:', {
+    console.log("✅ User found:", {
       id: user._id,
       email: user.email,
       status: user.status,
       isActive: user.isActive,
       hasPassword: !!user.password,
-      passwordLength: user.password?.length
+      passwordLength: user.password?.length,
     });
 
     // Check if user is admin or superAdmin
-    if (!['superAdmin', 'admin'].includes(user.status)) {
-      console.log('❌ User status not allowed:', user.status);
-      return res.status(403).json({ 
+    if (!["superAdmin", "admin"].includes(user.status)) {
+      console.log("❌ User status not allowed:", user.status);
+      return res.status(403).json({
         success: false,
-        message: "Access denied! Admin privileges required." 
+        message: "Access denied! Admin privileges required.",
       });
     }
 
     // Check if user is active
     if (!user.isActive) {
-      console.log('❌ User account inactive');
-      return res.status(403).json({ 
+      console.log("❌ User account inactive");
+      return res.status(403).json({
         success: false,
-        message: "Account is deactivated. Contact administrator." 
+        message: "Account is deactivated. Contact administrator.",
       });
     }
 
     // Verify password
-    console.log('Comparing password...');
+    console.log("Comparing password...");
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log('Password comparison result:', isPasswordValid);
-    
+    console.log("Password comparison result:", isPasswordValid);
+
     if (!isPasswordValid) {
-      console.log('❌ Invalid password');
-      return res.status(400).json({ 
+      console.log("❌ Invalid password");
+      return res.status(400).json({
         success: false,
-        message: "Invalid email or password!" 
+        message: "Invalid email or password!",
       });
     }
 
@@ -77,13 +77,27 @@ export const adminSignIn = async (req, res, next) => {
       email: user.email,
       name: user.name,
       status: user.status,
-      permissions: user.permissions
+      permissions: user.permissions,
     };
 
-    console.log('Creating JWT token with secret:', process.env.JWT_SECRET ? 'Set' : 'Not set');
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET || 'sndnt', { 
-      expiresIn: "8h" 
-    });
+    console.log(
+      "Creating JWT token with secret:",
+      process.env.JWT_SECRET ? "Set" : "Not set"
+    );
+    const token = jwt.sign(
+      {
+        id: user._id.toString(), // Ensure it's string
+        email: user.email,
+        name: user.name,
+        status: user.status,
+        permissions: user.permissions || [],
+        iat: Math.floor(Date.now() / 1000), // Issued at time
+      },
+      process.env.JWT_SECRET || "sndnt", // Use consistent secret
+      {
+        expiresIn: "8h",
+      }
+    );
 
     // Remove password from user object
     const userResponse = {
@@ -94,24 +108,23 @@ export const adminSignIn = async (req, res, next) => {
       permissions: user.permissions,
       isActive: user.isActive,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     };
 
-    console.log('✅ Login successful for:', user.email);
-    
-    res.status(200).json({ 
+    console.log("✅ Login successful for:", user.email);
+
+    res.status(200).json({
       success: true,
       message: "Login successful!",
       token,
-      user: userResponse
+      user: userResponse,
     });
-
   } catch (error) {
     console.error("❌ Admin Sign In Error:", error.message);
     console.error("Stack:", error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Internal server error" 
+      message: "Internal server error",
     });
   }
 };
