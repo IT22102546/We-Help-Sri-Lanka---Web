@@ -412,7 +412,7 @@ function DonationRequests() {
       <div className="card bg-white shadow-sm rounded-lg mb-6">
         <div className="card-body p-4">
           <div className="flex justify-between items-center">
-            <div>
+            <div className="">
               <h5 className="text-xl font-semibold mb-3">Donation Requests</h5>
               <nav aria-label="breadcrumb">
                 <ol className="breadcrumb flex items-center space-x-3 text-sm text-gray-600">
@@ -433,16 +433,6 @@ function DonationRequests() {
                 </ol>
               </nav>
             </div>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowAddModal(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Add New Request
-            </button>
           </div>
         </div>
       </div>
@@ -495,6 +485,16 @@ function DonationRequests() {
             <Search className="h-5 w-5" />
           </button>
         </div>
+        <button
+          onClick={() => {
+            resetForm();
+            setShowAddModal(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center"
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Add New Request
+        </button>
       </div>
 
       {/* Donations Table */}
