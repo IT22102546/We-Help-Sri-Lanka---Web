@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaCalendarAlt, FaHeart, FaHome, FaUsers } from "react-icons/fa";
-import logo from '../assets/Logo/logo.jpg';
+import { FaUser, FaCalendarAlt, FaHeart, FaHome, FaUsers, FaCrown } from "react-icons/fa";
+import logo from '../assets/Logo/logo.png';
 
 const DashSideBar = ({ onNavItemClick, activeSection }) => {
   const [userType, setUserType] = useState(null);
@@ -11,32 +11,12 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
   useEffect(() => {
     const checkUserType = () => {
       try {
-        // Method 1: Check from user data stored in localStorage
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUserType(parsedUser.user_type_id);
-          setUserRole(parsedUser.role || parsedUser.status); // Check both role and status fields
-        } 
-        
-        // Method 2: Check specific flags for SuperAdmin
-        const role = localStorage.getItem('role') || localStorage.getItem('status');
-        if (role) {
-          setUserRole(role);
+          setUserRole(parsedUser.role || parsedUser.status);
         }
-        
-        // Method 3: Check userTypeId directly
-        const userTypeId = localStorage.getItem('userTypeId');
-        if (userTypeId) {
-          setUserType(parseInt(userTypeId));
-        }
-        
-        // Method 4: Additional check for SuperAdmin
-        const isSuperAdmin = localStorage.getItem('isSuperAdmin') === 'true';
-        if (isSuperAdmin) {
-          setUserRole('superAdmin');
-        }
-        
       } catch (error) {
         console.error("Error checking user type:", error);
       } finally {
@@ -50,135 +30,137 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
   // Check if user is SuperAdmin
   const isSuperAdmin = userRole === 'superAdmin' || 
                       userRole === 'SuperAdmin' || 
-                      userType === 1; // Assuming 1 is SuperAdmin's user_type_id
+                      userType === 1;
 
-  // Check if user is Staff (for other conditional displays)
+  // Check if user is Staff
   const isStaff = userType === 3;
+
+  // Get status color
+  const getStatusColor = () => {
+    if (isSuperAdmin) return "bg-gradient-to-r from-red-500 to-yellow-500";
+    return "bg-gradient-to-r from-blue-500 to-green-500";
+  };
 
   if (loading) {
     return (
-      <div className="w-52 h-full bg-white p-2 pt-0 pl-0 rounded-r-lg shadow-lg flex items-center justify-center">
+      <div className="w-64 h-full bg-gradient-to-b from-blue-50 to-white border-r border-gray-200 p-2 pt-0 pl-0 shadow-lg flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="w-52 h-full bg-white p-2 pt-0 pl-0 rounded-r-lg shadow-lg">
-      {/* Logo and Title */}
-      <div className="text-black text-2xl font-semibold flex flex-col items-center mb-8 pt-14">
-        <img
-          src={logo}
-          alt="Logo"
-          className="mr-2 rounded-full w-12 h-12"
-        />
-        <span className="ml-2 text-sm text-dark">
+    <div className="w-64 h-full bg-gradient-to-b from-blue-50 to-white border-r border-gray-200 p-2 pt-0 pl-0 shadow-lg">
+      {/* Logo and Title - Updated for rectangular logo */}
+      <div className="flex flex-col items-center mb-8 pt-14 mt-6">
+        {/* Logo Container */}
+        <div className="relative mb-3">
+          {/* Background with proper aspect ratio for rectangular logo */}
+          <div className={`flex items-center justify-center p-2 ${getStatusColor()} rounded-lg shadow-sm`}>
+            {/* Logo Image - Rectangular version */}
+            <img
+              src={logo}
+              alt="We Help Sri Lanka Logo"
+              className="h-12 w-auto max-w-[120px] object-contain"
+            />
+          </div>
+          {/* Super Admin Crown Badge */}
+          {isSuperAdmin && (
+            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1 border-2 border-white shadow-sm">
+              <FaCrown className="text-white text-xs" />
+            </div>
+          )}
+        </div>
+        
+        {/* User Role Title */}
+        <span className="text-lg font-semibold text-gray-800">
           {isSuperAdmin ? 'Super Admin' : isStaff ? 'Staff' : 'Admin'}
         </span>
+        
+        {/* Organization Name */}
+        <span className="text-sm text-gray-600 mt-1">We Help Sri Lanka</span>
+        
+        {/* Relief Operations Tagline */}
+        <span className="text-xs text-gray-500 mt-1">Relief Operations</span>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="space-y-4 pl-1">
+      <nav className="space-y-1 px-2">
         {/* Dashboard Link */}
-        <div className="text-black">
-          <button
-            onClick={() => onNavItemClick("dashboard")}
-            className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-              activeSection === "dashboard"
-                ? "bg-yellow-200"
-                : "hover:bg-yellow-300"
-            }`}
-          >
-            <FaHome className="mr-3 inline" /> Dashboard
-          </button>
-        </div>
+        <button
+          onClick={() => onNavItemClick("dashboard")}
+          className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+            activeSection === "dashboard"
+              ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
+        >
+          <FaHome className="mr-3 h-5 w-5" />
+          <span className="font-medium">Dashboard</span>
+        </button>
 
-        <hr />
-        
         {/* Admin Management Link - Only show if user is SuperAdmin */}
         {isSuperAdmin && (
-          <>
-            <div className="text-black">
-              <button
-                onClick={() => onNavItemClick("staff")}
-                className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-                  activeSection === "staff"
-                    ? "bg-yellow-200"
-                    : "hover:bg-yellow-300"
-                }`}
-              >
-                <FaUsers className="mr-3 inline" /> Admin Management
-              </button>
-            </div>
-            <hr />
-          </>
-        )}
-        
-        {/* Profile Link */}
-        <div className="text-black">
           <button
-            onClick={() => onNavItemClick("profile")}
-            className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-              activeSection === "profile"
-                ? "bg-yellow-200"
-                : "hover:bg-yellow-300"
+            onClick={() => onNavItemClick("staff")}
+            className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+              activeSection === "staff"
+                ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }`}
           >
-            <FaUser className="mr-3 inline" /> Profile
+            <FaUsers className="mr-3 h-5 w-5" />
+            <span className="font-medium">Admin Management</span>
           </button>
-        </div>
-
-        <hr />
+        )}
         
+        {/* Donation Request Link */}
+        <button
+          onClick={() => onNavItemClick("profile")}
+          className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+            activeSection === "profile"
+              ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
+        >
+          <FaUser className="mr-3 h-5 w-5" />
+          <span className="font-medium">Donation Request</span>
+        </button>
+
         {/* Package Bookings Link - Only show if user is NOT Staff */}
-        {!isStaff && (
-          <>
-            <div className="text-black">
-              <button
-                onClick={() => onNavItemClick("bookings")}
-                className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-                  activeSection === "bookings"
-                    ? "bg-yellow-200"
-                    : "hover:bg-yellow-300"
-                }`}
-              >
-                <FaCalendarAlt className="mr-3 inline" /> Package Bookings
-              </button>
-            </div>
-            <hr />
-          </>
-        )}
-
-        {/* Interested Link */}
-        <div className="text-black">
-          <button
-            onClick={() => onNavItemClick("interested")}
-            className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-              activeSection === "interested"
-                ? "bg-yellow-200"
-                : "hover:bg-yellow-300"
-            }`}
-          >
-            <FaHeart className="mr-3 inline" /> Interested
-          </button>
-        </div>
-        <hr />
-        
-        {/* Profile Interested Link */}
-        <div className="text-black">
-          <button
-            onClick={() => onNavItemClick("profileinterested")}
-            className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
-              activeSection === "profileinterested"
-                ? "bg-yellow-200"
-                : "hover:bg-yellow-300"
-            }`}
-          >
-            <FaHeart className="mr-3 inline" /> Profile Interested
-          </button>
-        </div>
-        <hr />
+    
+    
+     
       </nav>
+
+      {/* User Info at Bottom - Updated for rectangular logo */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+        <div className="flex items-center space-x-3">
+          {/* User Avatar with Logo - Rectangular version */}
+          <div className="relative">
+            <div className={`flex items-center justify-center p-1 ${getStatusColor()} rounded-lg overflow-hidden`}>
+              <img
+                src={logo}
+                alt="User Avatar"
+                className="h-8 w-auto max-w-[32px] object-contain"
+              />
+            </div>
+            {/* Super Admin Badge */}
+            {isSuperAdmin && (
+              <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-1 border border-white">
+                <FaCrown className="text-white text-[8px]" />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-gray-900 truncate">
+              {isSuperAdmin ? 'Super Admin' : isStaff ? 'Staff' : 'Admin'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">We Help Sri Lanka</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
