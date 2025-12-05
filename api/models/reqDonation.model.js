@@ -59,7 +59,8 @@ const donationRequestSchema = new mongoose.Schema({
     default: ''
   }
 }, {
-  timestamps: true
+   timestamps: true,
+  collection: 'donationRequests' 
 });
 
 // Create indexes for better query performance
