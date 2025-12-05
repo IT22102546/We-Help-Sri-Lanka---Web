@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaCalendarAlt, FaHeart, FaHome, FaUsers } from "react-icons/fa";
-import logo from '../assets/Logo/logo.jpg';
+import {
+  FaUser,
+  FaCalendarAlt,
+  FaHeart,
+  FaHome,
+  FaUsers,
+} from "react-icons/fa";
+import logo from "../assets/Logo/logo.jpg";
 
 const DashSideBar = ({ onNavItemClick, activeSection }) => {
   const [userType, setUserType] = useState(null);
@@ -11,21 +17,20 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
     const checkUserType = () => {
       try {
         // Method 1: Check from user data stored in localStorage
-        const userData = localStorage.getItem('user');
+        const userData = localStorage.getItem("user");
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUserType(parsedUser.user_type_id);
-        } 
+        }
         // Method 2: Check from specific flags
-        else if (localStorage.getItem('isStaff') === 'true') {
+        else if (localStorage.getItem("isStaff") === "true") {
           setUserType(3); // Staff user_type_id
-        } 
-        else if (localStorage.getItem('isAdmin') === 'true') {
+        } else if (localStorage.getItem("isAdmin") === "true") {
           setUserType(1); // Admin user_type_id
         }
         // Method 3: Check userTypeId directly
         else {
-          const userTypeId = localStorage.getItem('userTypeId');
+          const userTypeId = localStorage.getItem("userTypeId");
           if (userTypeId) {
             setUserType(parseInt(userTypeId));
           }
@@ -55,13 +60,9 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
     <div className="w-52 h-full bg-white p-2 pt-0 pl-0 rounded-r-lg shadow-lg">
       {/* Logo and Title */}
       <div className="text-black text-2xl font-semibold flex flex-col items-center mb-8 pt-14">
-        <img
-          src={logo}
-          alt="Logo"
-          className="mr-2 rounded-full w-12 h-12"
-        />
+        <img src={logo} alt="Logo" className="mr-2 rounded-full w-12 h-12" />
         <span className="ml-2 text-sm text-dark">
-          {isStaff ? 'Staff' : 'Admin'}
+          {isStaff ? "Staff" : "Admin"}
         </span>
       </div>
 
@@ -82,7 +83,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         </div>
 
         <hr />
-        
+
         {/* Staff Management Link - Only show if user is NOT Staff */}
         {!isStaff && (
           <>
@@ -101,9 +102,9 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
             <hr />
           </>
         )}
-        
+
         {/* Profile Link */}
-        <div className="text-black">
+        {/* <div className="text-black">
           <button
             onClick={() => onNavItemClick("profile")}
             className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
@@ -114,10 +115,10 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           >
             <FaUser className="mr-3 inline" /> Profile
           </button>
-        </div>
+        </div> */}
 
         <hr />
-        
+
         {/* Package Bookings Link - Only show if user is NOT Staff */}
         {!isStaff && (
           <>
@@ -130,7 +131,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
                     : "hover:bg-yellow-300"
                 }`}
               >
-                <FaCalendarAlt className="mr-3 inline" /> Package Bookings
+                <FaCalendarAlt className="mr-3 inline" /> Donation Requests
               </button>
             </div>
             <hr />
@@ -138,7 +139,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         )}
 
         {/* Interested Link */}
-        <div className="text-black">
+        {/* <div className="text-black">
           <button
             onClick={() => onNavItemClick("interested")}
             className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
@@ -149,11 +150,11 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           >
             <FaHeart className="mr-3 inline" /> Interested
           </button>
-        </div>
-        <hr />
-        
+        </div> */}
+        {/* <hr /> */}
+
         {/* Profile Interested Link */}
-        <div className="text-black">
+        {/* <div className="text-black">
           <button
             onClick={() => onNavItemClick("profileinterested")}
             className={`block px-4 py-3 rounded-lg w-full text-xs text-left transition duration-300 font-workSans ${
@@ -164,8 +165,8 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           >
             <FaHeart className="mr-3 inline" /> Profile Interested
           </button>
-        </div>
-        <hr />
+        </div> */}
+        {/* <hr /> */}
       </nav>
     </div>
   );
