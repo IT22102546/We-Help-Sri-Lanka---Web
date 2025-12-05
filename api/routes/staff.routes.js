@@ -1,25 +1,20 @@
-import express from "express";
-import {
-  getStaffMembers,
-  searchStaffMembers,
-  getStaffDetails,
-  createStaffMember,
-  updateStaffMember,
-  updateStaffPassword,
-  deleteStaffMember,
-  getStaffCount
-} from "../controllers/staff.controller.js";
+import express from 'express';
+import { verifyToken } from '../utils/verifyUser.js';
+import { add, adminsignin ,Delete,getStaff,signout, updateStaff } from '../controllers/staff.controller.js';
+
 
 const router = express.Router();
 
-// Staff management routes
-router.get("/staff", getStaffMembers);
-router.get("/staff/search", searchStaffMembers);
-router.get("/staff/count", getStaffCount);
-router.get("/staff/:id", getStaffDetails);
-router.post("/staff", createStaffMember);
-router.put("/staff/:id", updateStaffMember);
-router.put("/staff/:id/password", updateStaffPassword);
-router.delete("/staff/:id", deleteStaffMember);
+router.post('/add',add);
+router.get('/getAll',getStaff);
+router.delete('/delete/:id',Delete);
+//router.get('/getmember/:id',Getmember);
+router.put('/updatemember/:id',updateStaff);
+//router.put('/updatememberprofile/:id',updatestaffprofile);
+router.post('/login',adminsignin);
+router.get('/signout',signout);
+//router.put("/assignmanager/:id" , verifyToken , assignManager);
+//router.put("/resignmanager/:id" , verifyToken , resignManager);
+//
 
 export default router;
