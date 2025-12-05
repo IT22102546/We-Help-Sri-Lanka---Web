@@ -237,7 +237,7 @@ export default function AdminSignIn() {
           </div>
 
           {/* Card Footer */}
-          <div className="bg-gray-50 px-6 py-4">
+          <div className="bg-gray-50 px-6 ">
             <p className="text-xs text-gray-500 text-center">
               Secure access for authorized personnel only. All activities are logged.
             </p>
