@@ -10,9 +10,10 @@ import logo from "../assets/Logo/logo.jpg";
 
 const DashSideBar = ({ onNavItemClick, activeSection }) => {
   const [userType, setUserType] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check user type from localStorage
+  // Check user type and role from localStorage
   useEffect(() => {
     const checkUserType = () => {
       try {
@@ -21,19 +22,26 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         if (userData) {
           const parsedUser = JSON.parse(userData);
           setUserType(parsedUser.user_type_id);
+          setUserRole(parsedUser.role || parsedUser.status); // Check both role and status fields
         }
-        // Method 2: Check from specific flags
-        else if (localStorage.getItem("isStaff") === "true") {
-          setUserType(3); // Staff user_type_id
-        } else if (localStorage.getItem("isAdmin") === "true") {
-          setUserType(1); // Admin user_type_id
+
+        // Method 2: Check specific flags for SuperAdmin
+        const role =
+          localStorage.getItem("role") || localStorage.getItem("status");
+        if (role) {
+          setUserRole(role);
         }
+
         // Method 3: Check userTypeId directly
-        else {
-          const userTypeId = localStorage.getItem("userTypeId");
-          if (userTypeId) {
-            setUserType(parseInt(userTypeId));
-          }
+        const userTypeId = localStorage.getItem("userTypeId");
+        if (userTypeId) {
+          setUserType(parseInt(userTypeId));
+        }
+
+        // Method 4: Additional check for SuperAdmin
+        const isSuperAdmin = localStorage.getItem("isSuperAdmin") === "true";
+        if (isSuperAdmin) {
+          setUserRole("superAdmin");
         }
       } catch (error) {
         console.error("Error checking user type:", error);
@@ -45,7 +53,11 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
     checkUserType();
   }, []);
 
-  // If user type is Staff (user_type_id = 3), hide Staff Management and Package Bookings
+  // Check if user is SuperAdmin
+  const isSuperAdmin =
+    userRole === "superAdmin" || userRole === "SuperAdmin" || userType === 1; // Assuming 1 is SuperAdmin's user_type_id
+
+  // Check if user is Staff (for other conditional displays)
   const isStaff = userType === 3;
 
   if (loading) {
@@ -62,7 +74,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
       <div className="text-black text-2xl font-semibold flex flex-col items-center mb-8 pt-14">
         <img src={logo} alt="Logo" className="mr-2 rounded-full w-12 h-12" />
         <span className="ml-2 text-sm text-dark">
-          {isStaff ? "Staff" : "Admin"}
+          {isSuperAdmin ? "Super Admin" : isStaff ? "Staff" : "Admin"}
         </span>
       </div>
 
@@ -84,8 +96,8 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
 
         <hr />
 
-        {/* Staff Management Link - Only show if user is NOT Staff */}
-        {!isStaff && (
+        {/* Admin Management Link - Only show if user is SuperAdmin */}
+        {isSuperAdmin && (
           <>
             <div className="text-black">
               <button
@@ -96,7 +108,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
                     : "hover:bg-yellow-300"
                 }`}
               >
-                <FaUsers className="mr-3 inline" /> Staff Management
+                <FaUsers className="mr-3 inline" /> Admin Management
               </button>
             </div>
             <hr />

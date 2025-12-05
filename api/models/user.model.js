@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  tp: { type: String, required: true },
+
   status: {
     type: String,
     enum: ['superAdmin', 'admin'],
