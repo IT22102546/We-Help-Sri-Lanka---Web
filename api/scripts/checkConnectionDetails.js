@@ -1,7 +1,8 @@
 // checkConnectionDetails.js
 import mongoose from "mongoose";
 
-const MONGODB_URI = "mongodb+srv://sanjananim2001_db_user:22501Sndnt@wehelpsrilanka.kqnfqsp.mongodb.net/?appName=WeHelpSriLanka";
+const MONGODB_URI ="mongodb+srv://sanjananim2001_db_user:22501Sndnt@wehelpsrilanka.kqnfqsp.mongodb.net/disasterReliefDB?retryWrites=true&w=majority&appName=WeHelpSriLanka";
+
 
 async function checkConnection() {
   try {

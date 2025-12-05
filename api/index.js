@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
+import staffRoutes from "./routes/staff.routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -83,6 +84,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/staff", staffRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
