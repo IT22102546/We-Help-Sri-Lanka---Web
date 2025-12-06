@@ -423,11 +423,11 @@ function AdminStaff() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-3 md:p-4 pb-20 md:pb-4">
+    <div className=" mt-20 min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-3 md:p-4 pb-20 md:pb-4 ">
       <ToastContainer />
       
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 shadow-lg">
+      <div className="md:hidden fixed top-0  left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-3 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
