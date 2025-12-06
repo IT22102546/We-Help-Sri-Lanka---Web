@@ -137,7 +137,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           <span className="font-medium">Donation Request</span>
         </button>
 
-         {/* Donation Request Link */}
+         {/* Donation Request Link 
         <button
           onClick={() => onNavItemClick("donarAdminpage")}
           className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
@@ -148,7 +148,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
         >
           <FaGifts className="mr-3 h-5 w-5" />
           <span className="font-medium">Donations</span>
-        </button>
+        </button>*/}
       </nav>
 
       {/* User Info at Bottom - Updated for rectangular logo */}
