@@ -8,6 +8,9 @@ import {
   FaTimes,
   FaAngleDown,
   FaCheck,
+  FaStar,
+  FaCrown,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export default function Home() {
@@ -17,13 +20,14 @@ export default function Home() {
 
   const [loading, setLoading] = useState(false);
   const [donations, setDonations] = useState([]);
+  const [featuredDonations, setFeaturedDonations] = useState([]);
+  const [regularDonations, setRegularDonations] = useState([]);
   const [showMore, setShowMore] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
 
   const [filterData, setFilterData] = useState({
     searchTerm: "",
     status: "all",
-    priority: "all",
     verified: "all",
   });
 
@@ -37,22 +41,26 @@ export default function Home() {
     { value: "FAKE", label: "Fake", color: "red" },
   ];
 
-  // Priority options with colors
-  const priorityOptions = [
-    { value: "all", label: "All Priority", color: "gray" },
-    { value: "1", label: "Priority 1", color: "red" },
-    { value: "2", label: "Priority 2", color: "orange" },
-    { value: "3", label: "Priority 3", color: "yellow" },
-    { value: "4", label: "Priority 4", color: "blue" },
-    { value: "5", label: "Priority 5", color: "green" },
-  ];
-
   // Verification options
   const verifiedOptions = [
     { value: "all", label: "All Verification" },
     { value: "true", label: "Verified Only" },
     { value: "false", label: "Not Verified" },
   ];
+
+  // Separate donations into featured (priority 1) and regular
+  useEffect(() => {
+    if (donations.length > 0) {
+      // FIX: Convert priority to number for comparison since Listings.jsx uses numbers
+      const featured = donations.filter(item => item.priority === 1 || item.priority === "1");
+      const regular = donations.filter(item => item.priority !== 1 && item.priority !== "1");
+      setFeaturedDonations(featured);
+      setRegularDonations(regular);
+    } else {
+      setFeaturedDonations([]);
+      setRegularDonations([]);
+    }
+  }, [donations]);
 
   // Fetch donations whenever filterData changes
   useEffect(() => {
@@ -67,7 +75,6 @@ export default function Home() {
         urlParams.set("district", "all");
         urlParams.set("searchTerm", filterData.searchTerm || "");
         urlParams.set("status", filterData.status || "all");
-        urlParams.set("priority", filterData.priority || "all");
         urlParams.set("verified", filterData.verified || "all");
 
         const res = await fetch(
@@ -79,7 +86,20 @@ export default function Home() {
         const result = await res.json();
 
         if (result.success) {
-          setDonations(result.data || []);
+          // Sort donations: priority 1 first, then others sorted by priority ascending
+          const sortedDonations = (result.data || []).sort((a, b) => {
+            // Convert priorities to numbers for comparison
+            const priorityA = parseInt(a.priority) || 999;
+            const priorityB = parseInt(b.priority) || 999;
+            
+            // Priority 1 always comes first
+            if (priorityA === 1 && priorityB !== 1) return -1;
+            if (priorityA !== 1 && priorityB === 1) return 1;
+            
+            // If both are not priority 1, sort by priority number ascending
+            return priorityA - priorityB;
+          });
+          setDonations(sortedDonations);
           setShowMore(result.hasMore);
         }
 
@@ -110,13 +130,11 @@ export default function Home() {
     const urlParams = new URLSearchParams(location.search);
     const searchTerm = urlParams.get("searchTerm") || "";
     const status = urlParams.get("status") || "all";
-    const priority = urlParams.get("priority") || "all";
     const verified = urlParams.get("verified") || "all";
 
     setFilterData({
       searchTerm,
       status,
-      priority,
       verified,
     });
   }, [location.search]);
@@ -136,7 +154,6 @@ export default function Home() {
     setFilterData({
       searchTerm: "",
       status: "all",
-      priority: "all",
       verified: "all",
     });
     navigate("/donations", { replace: true });
@@ -160,7 +177,19 @@ export default function Home() {
       const result = await res.json();
 
       if (result.success) {
-        setDonations((prev) => [...prev, ...(result.data || [])]);
+        const newDonations = result.data || [];
+        // Sort new donations: priority 1 first, then others sorted by priority ascending
+        const sortedNewDonations = newDonations.sort((a, b) => {
+          // Convert priorities to numbers for comparison
+          const priorityA = parseInt(a.priority) || 999;
+          const priorityB = parseInt(b.priority) || 999;
+          
+          if (priorityA === 1 && priorityB !== 1) return -1;
+          if (priorityA !== 1 && priorityB === 1) return 1;
+     
+          return priorityA - priorityB;
+        });
+        setDonations((prev) => [...prev, ...sortedNewDonations]);
         setShowMore(result.hasMore);
       }
     } catch (error) {
@@ -173,7 +202,6 @@ export default function Home() {
     return (
       filterData.searchTerm ||
       filterData.status !== "all" ||
-      filterData.priority !== "all" ||
       filterData.verified !== "all"
     );
   };
@@ -196,10 +224,15 @@ export default function Home() {
         FAKE: "bg-red-100 text-red-800 border-red-200",
       },
       priority: {
+        "1": "bg-red-100 text-red-800 border-red-200",
         1: "bg-red-100 text-red-800 border-red-200",
+        "2": "bg-orange-100 text-orange-800 border-orange-200",
         2: "bg-orange-100 text-orange-800 border-orange-200",
+        "3": "bg-yellow-100 text-yellow-800 border-yellow-200",
         3: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        "4": "bg-blue-100 text-blue-800 border-blue-200",
         4: "bg-blue-100 text-blue-800 border-blue-200",
+        "5": "bg-green-100 text-green-800 border-green-200",
         5: "bg-green-100 text-green-800 border-green-200",
       },
       verified: {
@@ -275,9 +308,16 @@ export default function Home() {
                     Loading...
                   </span>
                 ) : (
-                  `${donations.length} ${
-                    donations.length === 1 ? "request" : "requests"
-                  } found`
+                  <div className="flex flex-wrap gap-2">
+                    {featuredDonations.length > 0 && (
+                      <span className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        {featuredDonations.length} URGENT
+                      </span>
+                    )}
+                    <span>
+                      {donations.length} {donations.length === 1 ? "request" : "requests"} found
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
@@ -316,22 +356,6 @@ export default function Home() {
                     </button>
                   </span>
                 )}
-                {filterData.priority !== "all" && (
-                  <span
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${getColorClass(
-                      "priority",
-                      filterData.priority
-                    )} shadow-sm`}
-                  >
-                    Priority {filterData.priority}
-                    <button
-                      onClick={() => clearFilter("priority")}
-                      className="ml-1 hover:opacity-80 transition-opacity"
-                    >
-                      <FaTimes className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
                 {filterData.verified !== "all" && (
                   <span
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${getColorClass(
@@ -355,7 +379,7 @@ export default function Home() {
 
             {/* Filter Options */}
             {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 {/* Status Filter */}
                 <div className="space-y-3">
                   <label className="block text-sm font-medium text-gray-700">
@@ -372,30 +396,6 @@ export default function Home() {
                           filterData.status === option.value
                             ? "bg-blue-600 text-white border-blue-600 shadow-md"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-200"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Priority Filter */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Priority Level
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {priorityOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() =>
-                          handleFilterChange("priority", option.value)
-                        }
-                        className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-300 border ${
-                          filterData.priority === option.value
-                            ? `bg-${option.color}-600 text-white border-${option.color}-600 shadow-md`
-                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                         }`}
                       >
                         {option.label}
@@ -446,19 +446,7 @@ export default function Home() {
           {!loading && donations.length === 0 && (
             <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-200">
               <div className="text-gray-400 mb-4">
-                <svg
-                  className="w-20 h-20 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <FaExclamationTriangle className="w-20 h-20 mx-auto" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 No donation requests found
@@ -483,11 +471,81 @@ export default function Home() {
           {/* Donations Grid */}
           {!loading && donations.length > 0 && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {donations.map((item) => (
-                  <DonationListing key={item._id} item={item} />
-                ))}
-              </div>
+              {/* Featured Section - Priority 1 */}
+              {featuredDonations.length > 0 && (
+                <div className="mb-10">
+                  {/* Featured Header */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-gradient-to-r from-red-500 to-red-600 p-2 rounded-lg">
+                      <FaCrown className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">
+                        URGENT REQUESTS
+                      </h2>
+                      <p className="text-red-600 text-sm font-medium">
+                        <FaExclamationTriangle className="inline-block w-4 h-4 mr-1" />
+                        Priority 1 - These requests need immediate attention
+                      </p>
+                    </div>
+                    <div className="ml-auto">
+                      <span className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                        {featuredDonations.length} URGENT
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Featured Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {featuredDonations.map((item) => (
+                      <div key={item._id} className="relative group">
+                        {/* Featured Badge */}
+                        <div className="absolute -top-2 -right-2 z-10">
+                          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg animate-pulse">
+                            <FaStar className="w-3 h-3" />
+                            URGENT
+                          </div>
+                        </div>
+                        {/* Red border highlight */}
+                        <div className="absolute inset-0 border-2 border-red-500 rounded-xl pointer-events-none shadow-lg group-hover:border-red-600 transition-colors duration-200"></div>
+                        <DonationListing item={item} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regular Requests Section */}
+              {regularDonations.length > 0 && (
+                <div>
+                  {/* Regular Header - Only show if there are featured donations */}
+                  {featuredDonations.length > 0 && (
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="bg-gray-800 p-2 rounded-lg">
+                        <FaCheck className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">
+                          ALL REQUESTS
+                        </h2>
+                        <p className="text-gray-600 text-sm">
+                          Browse through all donation requests
+                        </p>
+                      </div>
+                      <div className="ml-auto text-sm text-gray-500">
+                        Sorted by priority (lowest to highest)
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Regular Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {regularDonations.map((item) => (
+                      <DonationListing key={item._id} item={item} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Load More Button */}
               {showMore && (

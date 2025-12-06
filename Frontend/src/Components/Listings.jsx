@@ -97,7 +97,10 @@ export default function Listings({ item }) {
 
   // Get priority configuration
   const getPriorityConfig = () => {
-    switch (item.priority) {
+    // Ensure priority is treated as number for comparison
+    const priority = parseInt(item.priority) || 5;
+    
+    switch (priority) {
       case 1:
         return {
           color: "bg-gradient-to-r from-red-500 to-red-600",
@@ -452,13 +455,13 @@ export default function Listings({ item }) {
             <MdInfo className="text-lg" />
             View Details
           </button>
-          <button
+          {/*<button
             onClick={() => handleDonateModalToggle(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg flex-1"
           >
             <MdAttachMoney className="text-lg" />
             Donate Now
-          </button>
+          </button>*/}
         </div>
       </div>
 
@@ -670,13 +673,13 @@ export default function Listings({ item }) {
                       Call Now
                     </a>
                   )}
-                  <button
+                  {/*<button
                     onClick={() => handleDonateModalToggle(true)}
                     className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-teal-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <MdAttachMoney />
                     Donate to Help
-                  </button>
+                  </button>*/}
                 </div>
               </div>
             </div>
