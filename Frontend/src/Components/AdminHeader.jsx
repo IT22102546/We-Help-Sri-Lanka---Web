@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FaBars, FaSearch, FaExpandAlt, FaCompressAlt, FaCrown } from "react-icons/fa";
-import { ChevronDown, Settings, LogOut, Shield, Home, Users } from "lucide-react";
+import { ChevronDown, LogOut, Shield } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "../redux/user/userSlice";
@@ -114,7 +114,22 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
     };
   }, []);
 
-  // Function to handle section change
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const dropdown = document.getElementById('user-dropdown');
+      const button = document.getElementById('user-dropdown-button');
+      
+      if (dropdown && button && !dropdown.contains(event.target) && !button.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle section change
   const handleSectionChange = (section) => {
     if (onSectionChange) {
       onSectionChange(section);
@@ -124,7 +139,7 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-lg">
-      <div className="flex items-center justify-between px-4 py-3 md:px-8">
+      <div className="flex items-center justify-between px-4 py-3 md:px-8 md:py-4">
         {/* Left Section */}
         <div className="flex items-center space-x-4">
           {/* Menu Button */}
@@ -138,17 +153,17 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
 
           {/* Brand */}
           <div className="flex items-center space-x-3">
-            <div className={`h-8 w-8 rounded-lg ${getStatusColor()} flex items-center justify-center`}>
+            <div className={`h-8 w-8 md:h-10 md:w-10 rounded-lg ${getStatusColor()} flex items-center justify-center`}>
               <span className="text-white font-bold">SL</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold">Relief Operations</h1>
-              <p className="text-xs opacity-80">{getDisplayName()} Panel</p>
+              <h1 className="text-lg md:text-xl font-semibold">Relief Operations</h1>
+              <p className="text-xs md:text-sm opacity-80">{getDisplayName()} Panel</p>
             </div>
           </div>
 
-          {/* Desktop Search */}
-          <div className="hidden md:block relative ml-4">
+          {/* Desktop Search - Hidden on mobile/tablet */}
+          <div className="hidden lg:block relative ml-4">
             <input
               type="text"
               placeholder="Search operations..."
@@ -160,9 +175,9 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
 
         {/* Right Section */}
         <div className="flex items-center space-x-3">
-          {/* Fullscreen Toggle */}
+          {/* Fullscreen Toggle - Hidden on mobile/tablet */}
           <button
-            className="p-2 rounded-lg hover:bg-white/20 hidden md:block"
+            className="p-2 rounded-lg hover:bg-white/20 hidden lg:block"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
@@ -176,6 +191,7 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
           {/* User Dropdown */}
           <div className="relative">
             <button
+              id="user-dropdown-button"
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/20"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
@@ -183,63 +199,50 @@ function AdminHeader({ onToggleSidebar, activeSection, onSectionChange }) {
                 <p className="text-sm font-medium">{userName}</p>
                 <p className="text-xs opacity-80 truncate max-w-[150px]">{userEmail}</p>
               </div>
-              <div className={`h-8 w-8 rounded-full ${getStatusColor()} flex items-center justify-center text-white font-bold`}>
+              <div className={`h-8 w-8 md:h-10 md:w-10 rounded-full ${getStatusColor()} flex items-center justify-center text-white font-bold`}>
                 {userName.charAt(0)}
               </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu - Fixed positioning */}
             {isDropdownOpen && (
               <div
-                className="absolute right-0 mt-2 w-64 bg-white text-gray-800 shadow-xl rounded-lg overflow-hidden border border-gray-200"
-                onMouseLeave={() => setIsDropdownOpen(false)}
+                id="user-dropdown"
+                className="fixed md:absolute right-4 md:right-0 top-16 md:top-14 mt-0 md:mt-2 w-[calc(100vw-32px)] md:w-64 max-w-md bg-white text-gray-800 shadow-xl rounded-lg overflow-hidden border border-gray-200 z-[9999]"
               >
                 {/* User Info */}
                 <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-green-50">
                   <div className="flex items-center space-x-3">
-                    <div className={`h-10 w-10 rounded-full ${getStatusColor()} flex items-center justify-center text-white font-bold`}>
+                    <div className={`h-10 w-10 md:h-12 md:w-12 rounded-full ${getStatusColor()} flex items-center justify-center text-white font-bold`}>
                       {userName.charAt(0)}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{userName}</h3>
-                      <p className="text-sm text-gray-600">{userEmail}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 truncate text-sm md:text-base">{userName}</h3>
+                      <p className="text-xs md:text-sm text-gray-600 truncate">{userEmail}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getStatusBadgeColor()}`}>
                           {getStatusIcon()}
-                          <span className="ml-1">{userStatus}</span>
+                          <span className="ml-1 truncate">{userStatus}</span>
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-              
-
-                {/* Logout */}
+                {/* Logout - Mobile & Desktop */}
                 <div className="border-t border-gray-100">
-                  <button onClick={handleLogout} className="w-full">
-                    <div className="px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2 hover:cursor-pointer">
-                      <LogOut className="w-4 h-4" />
-                      <span>Log Out</span>
-                    </div>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full px-4 py-3 md:py-2 text-red-600 hover:bg-red-50 flex items-center justify-center md:justify-start gap-2 hover:cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="font-medium text-sm md:text-base">Log Out</span>
                   </button>
                 </div>
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Mobile Search */}
-      <div className="md:hidden px-4 pb-3">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search operations..."
-            className="w-full pl-10 pr-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-blue-100 text-sm"
-          />
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-100 h-4 w-4" />
         </div>
       </div>
     </div>
