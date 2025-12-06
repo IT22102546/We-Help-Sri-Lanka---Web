@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import AdminHeader from "./AdminHeader";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import OrganizationsAdmin from "../Pages/admin/OrganizationsAdmin";
 
 // Lazy load components
 const AdminStaff = lazy(() => import("../Pages/admin/AdminStaff"));
@@ -193,41 +194,41 @@ const AdminDashboard = () => {
   );
 
   // Get priority color
-// Get priority color - Updated: 5 is highest, 1 is lowest
-const getPriorityColor = (priority) => {
-  switch (priority) {
-    case 5: // Highest priority
-      return "bg-red-100 text-red-800";
-    case 4:
-      return "bg-orange-100 text-orange-800";
-    case 3:
-      return "bg-yellow-100 text-yellow-800";
-    case 2:
-      return "bg-blue-100 text-blue-800";
-    case 1: // Lowest priority
-      return "bg-green-100 text-green-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
+  // Get priority color - Updated: 5 is highest, 1 is lowest
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 5: // Highest priority
+        return "bg-red-100 text-red-800";
+      case 4:
+        return "bg-orange-100 text-orange-800";
+      case 3:
+        return "bg-yellow-100 text-yellow-800";
+      case 2:
+        return "bg-blue-100 text-blue-800";
+      case 1: // Lowest priority
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
-// Get priority label
-const getPriorityLabel = (priority) => {
-  switch (priority) {
-    case 5:
-      return "Highest Priority (5)";
-    case 4:
-      return "High Priority (4)";
-    case 3:
-      return "Medium Priority (3)";
-    case 2:
-      return "Low Priority (2)";
-    case 1:
-      return "Lowest Priority (1)";
-    default:
-      return `Priority ${priority}`;
-  }
-};
+  // Get priority label
+  const getPriorityLabel = (priority) => {
+    switch (priority) {
+      case 5:
+        return "Highest Priority (5)";
+      case 4:
+        return "High Priority (4)";
+      case 3:
+        return "Medium Priority (3)";
+      case 2:
+        return "Low Priority (2)";
+      case 1:
+        return "Lowest Priority (1)";
+      default:
+        return `Priority ${priority}`;
+    }
+  };
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
@@ -427,70 +428,74 @@ const getPriorityLabel = (priority) => {
 
       {/* Priority and Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-{/* Priority-wise Distribution */}
-<div className="bg-white rounded-xl shadow p-4">
-  <div className="flex items-center justify-between mb-4">
-    <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-      <FaExclamationTriangle className="mr-2 text-red-500" />
-      Priority Levels
-    </h3>
-    <span className="text-sm text-gray-500">
-      5 = Highest, 1 = Lowest
-    </span>
-  </div>
-  <div className="space-y-4">
-    {[...dashboardData.priorityData]
-      .sort((a, b) => b.priority - a.priority) // Sort by priority descending (5 to 1)
-      .map((priorityItem, index) => (
-        <div key={index} className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(
-                  priorityItem.priority
-                )}`}
-              >
-                {getPriorityLabel(priorityItem.priority)}
-              </span>
-              <span className="text-sm text-gray-600">
-                {priorityItem.priority === 5 && "Urgent - Immediate attention"}
-                {priorityItem.priority === 4 && "High - Quick response"}
-                {priorityItem.priority === 3 && "Medium - Standard response"}
-                {priorityItem.priority === 2 && "Low - When possible"}
-                {priorityItem.priority === 1 && "Lowest - Non-urgent"}
-              </span>
-            </div>
-            <div className="text-right">
-              <div className="font-bold text-gray-800">
-                {priorityItem.total}
-              </div>
-              <div className="text-xs text-gray-500">total requests</div>
-            </div>
+        {/* Priority-wise Distribution */}
+        <div className="bg-white rounded-xl shadow p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+              <FaExclamationTriangle className="mr-2 text-red-500" />
+              Priority Levels
+            </h3>
+            <span className="text-sm text-gray-500">
+              5 = Highest, 1 = Lowest
+            </span>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center p-2 bg-green-50 rounded">
-              <div className="font-semibold text-green-700">
-                {priorityItem.completed}
-              </div>
-              <div className="text-green-600">Completed</div>
-            </div>
-            <div className="text-center p-2 bg-blue-50 rounded">
-              <div className="font-semibold text-blue-700">
-                {priorityItem.verified}
-              </div>
-              <div className="text-blue-600">Verified</div>
-            </div>
-            <div className="text-center p-2 bg-yellow-50 rounded">
-              <div className="font-semibold text-yellow-700">
-                {priorityItem.pending}
-              </div>
-              <div className="text-yellow-600">Pending</div>
-            </div>
+          <div className="space-y-4">
+            {[...dashboardData.priorityData]
+              .sort((a, b) => b.priority - a.priority) // Sort by priority descending (5 to 1)
+              .map((priorityItem, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-3">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(
+                          priorityItem.priority
+                        )}`}
+                      >
+                        {getPriorityLabel(priorityItem.priority)}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {priorityItem.priority === 5 &&
+                          "Urgent - Immediate attention"}
+                        {priorityItem.priority === 4 && "High - Quick response"}
+                        {priorityItem.priority === 3 &&
+                          "Medium - Standard response"}
+                        {priorityItem.priority === 2 && "Low - When possible"}
+                        {priorityItem.priority === 1 && "Lowest - Non-urgent"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-800">
+                        {priorityItem.total}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        total requests
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center p-2 bg-green-50 rounded">
+                      <div className="font-semibold text-green-700">
+                        {priorityItem.completed}
+                      </div>
+                      <div className="text-green-600">Completed</div>
+                    </div>
+                    <div className="text-center p-2 bg-blue-50 rounded">
+                      <div className="font-semibold text-blue-700">
+                        {priorityItem.verified}
+                      </div>
+                      <div className="text-blue-600">Verified</div>
+                    </div>
+                    <div className="text-center p-2 bg-yellow-50 rounded">
+                      <div className="font-semibold text-yellow-700">
+                        {priorityItem.pending}
+                      </div>
+                      <div className="text-yellow-600">Pending</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
-      ))}
-  </div>
-</div>
 
         {/* Recent Activity - Redesigned */}
         <div className="bg-white rounded-xl shadow p-4">
@@ -518,14 +523,26 @@ const getPriorityLabel = (priority) => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-600">Last 7 Days</div>
-                  <div className="text-2xl font-bold text-gray-800">{dashboardData.recentRequests}</div>
+                  <div className="text-2xl font-bold text-gray-800">
+                    {dashboardData.recentRequests}
+                  </div>
                   <div className="text-xs text-gray-500">New requests</div>
                 </div>
               </div>
               {dashboardData.dailyData.slice(-7).length > 0 && (
                 <div className="mt-2 text-xs text-blue-600 font-medium">
-                  ↑ {Math.round((dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) / 
-                    (dashboardData.dailyData.slice(-14, -7).reduce((sum, day) => sum + day.requests, 0) || 1)) * 100 - 100)}% from previous week
+                  ↑{" "}
+                  {Math.round(
+                    (dashboardData.dailyData
+                      .slice(-7)
+                      .reduce((sum, day) => sum + day.requests, 0) /
+                      (dashboardData.dailyData
+                        .slice(-14, -7)
+                        .reduce((sum, day) => sum + day.requests, 0) || 1)) *
+                      100 -
+                      100
+                  )}
+                  % from previous week
                 </div>
               )}
             </div>
@@ -538,16 +555,29 @@ const getPriorityLabel = (priority) => {
                 <div>
                   <div className="text-sm text-gray-600">Weekly Verified</div>
                   <div className="text-2xl font-bold text-gray-800">
-                    {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.verified, 0)}
+                    {dashboardData.dailyData
+                      .slice(-7)
+                      .reduce((sum, day) => sum + day.verified, 0)}
                   </div>
-                  <div className="text-xs text-gray-500">Verified this week</div>
+                  <div className="text-xs text-gray-500">
+                    Verified this week
+                  </div>
                 </div>
               </div>
               <div className="mt-2 text-xs text-green-600 font-medium">
-                {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) > 0 
-                  ? `${Math.round((dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.verified, 0) / 
-                      dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) * 100))}% verification rate`
-                  : 'No data'}
+                {dashboardData.dailyData
+                  .slice(-7)
+                  .reduce((sum, day) => sum + day.requests, 0) > 0
+                  ? `${Math.round(
+                      (dashboardData.dailyData
+                        .slice(-7)
+                        .reduce((sum, day) => sum + day.verified, 0) /
+                        dashboardData.dailyData
+                          .slice(-7)
+                          .reduce((sum, day) => sum + day.requests, 0)) *
+                        100
+                    )}% verification rate`
+                  : "No data"}
               </div>
             </div>
 
@@ -567,7 +597,13 @@ const getPriorityLabel = (priority) => {
                 </div>
               </div>
               <div className="mt-2 text-xs text-purple-600 font-medium">
-                Avg. {Math.round(dashboardData.dailyData.slice(-30).reduce((sum, day) => sum + day.requests, 0) / 30)} requests/day
+                Avg.{" "}
+                {Math.round(
+                  dashboardData.dailyData
+                    .slice(-30)
+                    .reduce((sum, day) => sum + day.requests, 0) / 30
+                )}{" "}
+                requests/day
               </div>
             </div>
           </div>
@@ -577,46 +613,66 @@ const getPriorityLabel = (priority) => {
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-medium text-gray-700">Daily Request Trend</h4>
               <div className="flex space-x-2">
-                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">Last 7 Days</span>
-                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">Detailed</span>
+                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                  Last 7 Days
+                </span>
+                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                  Detailed
+                </span>
               </div>
             </div>
-            
+
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-end space-x-2 h-32">
                 {dashboardData.dailyData.slice(-7).map((day, index) => {
-                  const maxRequests = Math.max(...dashboardData.dailyData.slice(-7).map(d => d.requests));
-                  const barHeight = maxRequests > 0 ? (day.requests / maxRequests) * 100 : 0;
-                  const verifiedPercentage = day.requests > 0 ? (day.verified / day.requests) * 100 : 0;
-                  
+                  const maxRequests = Math.max(
+                    ...dashboardData.dailyData.slice(-7).map((d) => d.requests)
+                  );
+                  const barHeight =
+                    maxRequests > 0 ? (day.requests / maxRequests) * 100 : 0;
+                  const verifiedPercentage =
+                    day.requests > 0 ? (day.verified / day.requests) * 100 : 0;
+
                   return (
-                    <div key={index} className="flex-1 flex flex-col items-center">
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center"
+                    >
                       <div className="relative w-8">
                         {/* Background bar (total requests) */}
-                        <div 
+                        <div
                           className="w-8 bg-gradient-to-t from-blue-400 to-blue-300 rounded-t"
                           style={{ height: `${barHeight}px` }}
                         />
                         {/* Verified portion overlay */}
-                        <div 
+                        <div
                           className="w-8 absolute bottom-0 bg-gradient-to-t from-green-500 to-green-400 rounded-t"
-                          style={{ height: `${barHeight * (verifiedPercentage / 100)}px` }}
+                          style={{
+                            height: `${
+                              barHeight * (verifiedPercentage / 100)
+                            }px`,
+                          }}
                         />
                       </div>
                       <div className="mt-2 text-center">
-                        <div className="text-xs font-semibold text-gray-800">{day.requests}</div>
+                        <div className="text-xs font-semibold text-gray-800">
+                          {day.requests}
+                        </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                          {new Date(day.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })}
                         </div>
                         <div className="text-xs text-gray-400">
-                          {new Date(day.date).getDate()}/{new Date(day.date).getMonth() + 1}
+                          {new Date(day.date).getDate()}/
+                          {new Date(day.date).getMonth() + 1}
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              
+
               {/* Chart Legend */}
               <div className="flex justify-center space-x-4 mt-4">
                 <div className="flex items-center">
@@ -633,38 +689,49 @@ const getPriorityLabel = (priority) => {
 
           {/* Activity Timeline */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">Recent Activity Breakdown</h4>
+            <h4 className="font-medium text-gray-700 mb-3">
+              Recent Activity Breakdown
+            </h4>
             <div className="space-y-3">
               {/* Highest Activity Day */}
-              {dashboardData.dailyData.length > 0 && (() => {
-                const highestDay = dashboardData.dailyData.reduce((prev, current) => 
-                  prev.requests > current.requests ? prev : current
-                );
-                return (
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center mr-3">
-                        <FaChartBar className="text-white text-sm" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-800">Peak Activity Day</div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(highestDay.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
+              {dashboardData.dailyData.length > 0 &&
+                (() => {
+                  const highestDay = dashboardData.dailyData.reduce(
+                    (prev, current) =>
+                      prev.requests > current.requests ? prev : current
+                  );
+                  return (
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center mr-3">
+                          <FaChartBar className="text-white text-sm" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">
+                            Peak Activity Day
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {new Date(highestDay.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-orange-600">
+                          {highestDay.requests}
+                        </div>
+                        <div className="text-xs text-gray-500">requests</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-600">{highestDay.requests}</div>
-                      <div className="text-xs text-gray-500">requests</div>
-                    </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               {/* Verification Rate Trend */}
               <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
@@ -673,15 +740,41 @@ const getPriorityLabel = (priority) => {
                     <FaCheckCircle className="text-white text-sm" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-800">Verification Trend</div>
-                    <div className="text-sm text-gray-600">Last 7 days average</div>
+                    <div className="font-medium text-gray-800">
+                      Verification Trend
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Last 7 days average
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-green-600">
-                    {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + (day.requests > 0 ? (day.verified / day.requests) * 100 : 0), 0) / 7 > 0
-                      ? `${Math.round(dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + (day.requests > 0 ? (day.verified / day.requests) * 100 : 0), 0) / 7)}%`
-                      : 'N/A'}
+                    {dashboardData.dailyData
+                      .slice(-7)
+                      .reduce(
+                        (sum, day) =>
+                          sum +
+                          (day.requests > 0
+                            ? (day.verified / day.requests) * 100
+                            : 0),
+                        0
+                      ) /
+                      7 >
+                    0
+                      ? `${Math.round(
+                          dashboardData.dailyData
+                            .slice(-7)
+                            .reduce(
+                              (sum, day) =>
+                                sum +
+                                (day.requests > 0
+                                  ? (day.verified / day.requests) * 100
+                                  : 0),
+                              0
+                            ) / 7
+                        )}%`
+                      : "N/A"}
                   </div>
                   <div className="text-xs text-gray-500">verification rate</div>
                 </div>
@@ -694,25 +787,45 @@ const getPriorityLabel = (priority) => {
                     <FaChartLine className="text-white text-sm" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-800">Activity Trend</div>
-                    <div className="text-sm text-gray-600">Week-over-week change</div>
+                    <div className="font-medium text-gray-800">
+                      Activity Trend
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Week-over-week change
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  {dashboardData.dailyData.slice(-7).length > 0 && dashboardData.dailyData.slice(-14, -7).length > 0 && (() => {
-                    const currentWeek = dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0);
-                    const prevWeek = dashboardData.dailyData.slice(-14, -7).reduce((sum, day) => sum + day.requests, 0);
-                    const change = prevWeek > 0 ? ((currentWeek - prevWeek) / prevWeek) * 100 : 0;
-                    
-                    return (
-                      <>
-                        <div className={`text-lg font-bold ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {change >= 0 ? '↑' : '↓'} {Math.abs(Math.round(change))}%
-                        </div>
-                        <div className="text-xs text-gray-500">{change >= 0 ? 'Increase' : 'Decrease'}</div>
-                      </>
-                    );
-                  })()}
+                  {dashboardData.dailyData.slice(-7).length > 0 &&
+                    dashboardData.dailyData.slice(-14, -7).length > 0 &&
+                    (() => {
+                      const currentWeek = dashboardData.dailyData
+                        .slice(-7)
+                        .reduce((sum, day) => sum + day.requests, 0);
+                      const prevWeek = dashboardData.dailyData
+                        .slice(-14, -7)
+                        .reduce((sum, day) => sum + day.requests, 0);
+                      const change =
+                        prevWeek > 0
+                          ? ((currentWeek - prevWeek) / prevWeek) * 100
+                          : 0;
+
+                      return (
+                        <>
+                          <div
+                            className={`text-lg font-bold ${
+                              change >= 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {change >= 0 ? "↑" : "↓"}{" "}
+                            {Math.abs(Math.round(change))}%
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {change >= 0 ? "Increase" : "Decrease"}
+                          </div>
+                        </>
+                      );
+                    })()}
                 </div>
               </div>
             </div>
@@ -761,21 +874,21 @@ const getPriorityLabel = (priority) => {
             </div>
           </div>
 
-<div className="p-3 bg-white rounded-lg shadow-sm">
-  <div className="flex items-center">
-    <FaExclamationTriangle className="text-red-500 mr-2" />
-    <span className="font-medium">High Priority Requests</span>
-  </div>
-  <div className="mt-2">
-    <div className="text-xl font-bold text-gray-800">
-      {dashboardData.priorityData.find((p) => p.priority === 5)
-        ?.total || 0}
-    </div>
-    <div className="text-sm text-gray-600">
-      Highest priority (5) urgent requests
-    </div>
-  </div>
-</div>
+          <div className="p-3 bg-white rounded-lg shadow-sm">
+            <div className="flex items-center">
+              <FaExclamationTriangle className="text-red-500 mr-2" />
+              <span className="font-medium">High Priority Requests</span>
+            </div>
+            <div className="mt-2">
+              <div className="text-xl font-bold text-gray-800">
+                {dashboardData.priorityData.find((p) => p.priority === 5)
+                  ?.total || 0}
+              </div>
+              <div className="text-sm text-gray-600">
+                Highest priority (5) urgent requests
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -790,6 +903,7 @@ const getPriorityLabel = (priority) => {
       <Suspense fallback={renderSkeleton()}>
         {activeSection === "staff" && <AdminStaff />}
         {activeSection === "bookings" && <AdminPackageBookings />}
+        {activeSection === "organizationAdmin" && <OrganizationsAdmin />}
         {activeSection === "dashboard" && renderDashboardContent()}
       </Suspense>
     );

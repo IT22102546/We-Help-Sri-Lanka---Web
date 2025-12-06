@@ -8,6 +8,7 @@ import {
   FaCrown,
   FaBitcoin,
   FaGifts,
+  FaUserLock,
 } from "react-icons/fa";
 import logo from "../assets/Logo/logo.png";
 
@@ -119,7 +120,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }`}
           >
-            <FaUsers className="mr-3 h-5 w-5" />
+            <FaUserLock className="mr-3 h-5 w-5" />
             <span className="font-medium">Admin Management</span>
           </button>
         )}
@@ -137,7 +138,20 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           <span className="font-medium">Disaster AID Requests</span>
         </button>
 
-         {/* Donation Request Link 
+        {/* Donation Request Link */}
+        <button
+          onClick={() => onNavItemClick("organizationAdmin")}
+          className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+            activeSection === "organizationAdmin"
+              ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
+        >
+          <FaUsers className="mr-3 h-5 w-5" />
+          <span className="font-medium">Organization</span>
+        </button>
+
+        {/* Donation Request Link 
         <button
           onClick={() => onNavItemClick("donarAdminpage")}
           className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
