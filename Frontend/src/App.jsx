@@ -18,6 +18,7 @@ import SingleProfile from "./Pages/SingleProfile";
 import AdminSignIn from "./Pages/AdminSignIn";
 import AdminDashboard from "./Components/AdminDashBoard";
 import AdminHeader from "./Components/AdminHeader";
+import Listings from "./Components/Listings";
 
 function AppContent() {
   const location = useLocation();
@@ -33,12 +34,15 @@ function AppContent() {
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/sign-up" element={<SignUp />} />
         <Route path="/admin-sign-in" element={<AdminSignIn />} />
+        <Route path='/donationview/:itemId'element={<Listings/>}/>
+        <Route path='/donations' element={<Home />} />
 
         <Route element={<PrivateRoute />}>
           <Route path="/customer-profile" element={<CustomerProfile />} />
           <Route path="/matching" element={<Matching />} />
           <Route path="single-profile/:id" element={<SingleProfile />} />
           <Route path="/dashboard" element={<AdminDashboard />} />
+
         </Route>
 
         <Route element={<OnlyAdminPrivateRoute />}>

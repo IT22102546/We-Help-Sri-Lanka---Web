@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import AdminHeader from "./AdminHeader";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import DonarAdminpage from "../Pages/admin/DonarAdminpage";
 
 // Lazy load components
 const AdminStaff = lazy(() => import("../Pages/admin/AdminStaff"));
@@ -492,14 +493,26 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-600">Last 7 Days</div>
-                  <div className="text-2xl font-bold text-gray-800">{dashboardData.recentRequests}</div>
+                  <div className="text-2xl font-bold text-gray-800">
+                    {dashboardData.recentRequests}
+                  </div>
                   <div className="text-xs text-gray-500">New requests</div>
                 </div>
               </div>
               {dashboardData.dailyData.slice(-7).length > 0 && (
                 <div className="mt-2 text-xs text-blue-600 font-medium">
-                  ↑ {Math.round((dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) / 
-                    (dashboardData.dailyData.slice(-14, -7).reduce((sum, day) => sum + day.requests, 0) || 1)) * 100 - 100)}% from previous week
+                  ↑{" "}
+                  {Math.round(
+                    (dashboardData.dailyData
+                      .slice(-7)
+                      .reduce((sum, day) => sum + day.requests, 0) /
+                      (dashboardData.dailyData
+                        .slice(-14, -7)
+                        .reduce((sum, day) => sum + day.requests, 0) || 1)) *
+                      100 -
+                      100
+                  )}
+                  % from previous week
                 </div>
               )}
             </div>
@@ -512,16 +525,29 @@ const AdminDashboard = () => {
                 <div>
                   <div className="text-sm text-gray-600">Weekly Verified</div>
                   <div className="text-2xl font-bold text-gray-800">
-                    {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.verified, 0)}
+                    {dashboardData.dailyData
+                      .slice(-7)
+                      .reduce((sum, day) => sum + day.verified, 0)}
                   </div>
-                  <div className="text-xs text-gray-500">Verified this week</div>
+                  <div className="text-xs text-gray-500">
+                    Verified this week
+                  </div>
                 </div>
               </div>
               <div className="mt-2 text-xs text-green-600 font-medium">
-                {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) > 0 
-                  ? `${Math.round((dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.verified, 0) / 
-                      dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0) * 100))}% verification rate`
-                  : 'No data'}
+                {dashboardData.dailyData
+                  .slice(-7)
+                  .reduce((sum, day) => sum + day.requests, 0) > 0
+                  ? `${Math.round(
+                      (dashboardData.dailyData
+                        .slice(-7)
+                        .reduce((sum, day) => sum + day.verified, 0) /
+                        dashboardData.dailyData
+                          .slice(-7)
+                          .reduce((sum, day) => sum + day.requests, 0)) *
+                        100
+                    )}% verification rate`
+                  : "No data"}
               </div>
             </div>
 
@@ -541,7 +567,13 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <div className="mt-2 text-xs text-purple-600 font-medium">
-                Avg. {Math.round(dashboardData.dailyData.slice(-30).reduce((sum, day) => sum + day.requests, 0) / 30)} requests/day
+                Avg.{" "}
+                {Math.round(
+                  dashboardData.dailyData
+                    .slice(-30)
+                    .reduce((sum, day) => sum + day.requests, 0) / 30
+                )}{" "}
+                requests/day
               </div>
             </div>
           </div>
@@ -551,46 +583,66 @@ const AdminDashboard = () => {
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-medium text-gray-700">Daily Request Trend</h4>
               <div className="flex space-x-2">
-                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">Last 7 Days</span>
-                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">Detailed</span>
+                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                  Last 7 Days
+                </span>
+                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                  Detailed
+                </span>
               </div>
             </div>
-            
+
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-end space-x-2 h-32">
                 {dashboardData.dailyData.slice(-7).map((day, index) => {
-                  const maxRequests = Math.max(...dashboardData.dailyData.slice(-7).map(d => d.requests));
-                  const barHeight = maxRequests > 0 ? (day.requests / maxRequests) * 100 : 0;
-                  const verifiedPercentage = day.requests > 0 ? (day.verified / day.requests) * 100 : 0;
-                  
+                  const maxRequests = Math.max(
+                    ...dashboardData.dailyData.slice(-7).map((d) => d.requests)
+                  );
+                  const barHeight =
+                    maxRequests > 0 ? (day.requests / maxRequests) * 100 : 0;
+                  const verifiedPercentage =
+                    day.requests > 0 ? (day.verified / day.requests) * 100 : 0;
+
                   return (
-                    <div key={index} className="flex-1 flex flex-col items-center">
+                    <div
+                      key={index}
+                      className="flex-1 flex flex-col items-center"
+                    >
                       <div className="relative w-8">
                         {/* Background bar (total requests) */}
-                        <div 
+                        <div
                           className="w-8 bg-gradient-to-t from-blue-400 to-blue-300 rounded-t"
                           style={{ height: `${barHeight}px` }}
                         />
                         {/* Verified portion overlay */}
-                        <div 
+                        <div
                           className="w-8 absolute bottom-0 bg-gradient-to-t from-green-500 to-green-400 rounded-t"
-                          style={{ height: `${barHeight * (verifiedPercentage / 100)}px` }}
+                          style={{
+                            height: `${
+                              barHeight * (verifiedPercentage / 100)
+                            }px`,
+                          }}
                         />
                       </div>
                       <div className="mt-2 text-center">
-                        <div className="text-xs font-semibold text-gray-800">{day.requests}</div>
+                        <div className="text-xs font-semibold text-gray-800">
+                          {day.requests}
+                        </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                          {new Date(day.date).toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })}
                         </div>
                         <div className="text-xs text-gray-400">
-                          {new Date(day.date).getDate()}/{new Date(day.date).getMonth() + 1}
+                          {new Date(day.date).getDate()}/
+                          {new Date(day.date).getMonth() + 1}
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              
+
               {/* Chart Legend */}
               <div className="flex justify-center space-x-4 mt-4">
                 <div className="flex items-center">
@@ -607,38 +659,49 @@ const AdminDashboard = () => {
 
           {/* Activity Timeline */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">Recent Activity Breakdown</h4>
+            <h4 className="font-medium text-gray-700 mb-3">
+              Recent Activity Breakdown
+            </h4>
             <div className="space-y-3">
               {/* Highest Activity Day */}
-              {dashboardData.dailyData.length > 0 && (() => {
-                const highestDay = dashboardData.dailyData.reduce((prev, current) => 
-                  prev.requests > current.requests ? prev : current
-                );
-                return (
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center mr-3">
-                        <FaChartBar className="text-white text-sm" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-800">Peak Activity Day</div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(highestDay.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
+              {dashboardData.dailyData.length > 0 &&
+                (() => {
+                  const highestDay = dashboardData.dailyData.reduce(
+                    (prev, current) =>
+                      prev.requests > current.requests ? prev : current
+                  );
+                  return (
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-orange-500 flex items-center justify-center mr-3">
+                          <FaChartBar className="text-white text-sm" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">
+                            Peak Activity Day
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {new Date(highestDay.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              }
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-orange-600">
+                          {highestDay.requests}
+                        </div>
+                        <div className="text-xs text-gray-500">requests</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-600">{highestDay.requests}</div>
-                      <div className="text-xs text-gray-500">requests</div>
-                    </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               {/* Verification Rate Trend */}
               <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
@@ -647,15 +710,41 @@ const AdminDashboard = () => {
                     <FaCheckCircle className="text-white text-sm" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-800">Verification Trend</div>
-                    <div className="text-sm text-gray-600">Last 7 days average</div>
+                    <div className="font-medium text-gray-800">
+                      Verification Trend
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Last 7 days average
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-green-600">
-                    {dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + (day.requests > 0 ? (day.verified / day.requests) * 100 : 0), 0) / 7 > 0
-                      ? `${Math.round(dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + (day.requests > 0 ? (day.verified / day.requests) * 100 : 0), 0) / 7)}%`
-                      : 'N/A'}
+                    {dashboardData.dailyData
+                      .slice(-7)
+                      .reduce(
+                        (sum, day) =>
+                          sum +
+                          (day.requests > 0
+                            ? (day.verified / day.requests) * 100
+                            : 0),
+                        0
+                      ) /
+                      7 >
+                    0
+                      ? `${Math.round(
+                          dashboardData.dailyData
+                            .slice(-7)
+                            .reduce(
+                              (sum, day) =>
+                                sum +
+                                (day.requests > 0
+                                  ? (day.verified / day.requests) * 100
+                                  : 0),
+                              0
+                            ) / 7
+                        )}%`
+                      : "N/A"}
                   </div>
                   <div className="text-xs text-gray-500">verification rate</div>
                 </div>
@@ -668,25 +757,45 @@ const AdminDashboard = () => {
                     <FaChartLine className="text-white text-sm" />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-800">Activity Trend</div>
-                    <div className="text-sm text-gray-600">Week-over-week change</div>
+                    <div className="font-medium text-gray-800">
+                      Activity Trend
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Week-over-week change
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  {dashboardData.dailyData.slice(-7).length > 0 && dashboardData.dailyData.slice(-14, -7).length > 0 && (() => {
-                    const currentWeek = dashboardData.dailyData.slice(-7).reduce((sum, day) => sum + day.requests, 0);
-                    const prevWeek = dashboardData.dailyData.slice(-14, -7).reduce((sum, day) => sum + day.requests, 0);
-                    const change = prevWeek > 0 ? ((currentWeek - prevWeek) / prevWeek) * 100 : 0;
-                    
-                    return (
-                      <>
-                        <div className={`text-lg font-bold ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {change >= 0 ? '↑' : '↓'} {Math.abs(Math.round(change))}%
-                        </div>
-                        <div className="text-xs text-gray-500">{change >= 0 ? 'Increase' : 'Decrease'}</div>
-                      </>
-                    );
-                  })()}
+                  {dashboardData.dailyData.slice(-7).length > 0 &&
+                    dashboardData.dailyData.slice(-14, -7).length > 0 &&
+                    (() => {
+                      const currentWeek = dashboardData.dailyData
+                        .slice(-7)
+                        .reduce((sum, day) => sum + day.requests, 0);
+                      const prevWeek = dashboardData.dailyData
+                        .slice(-14, -7)
+                        .reduce((sum, day) => sum + day.requests, 0);
+                      const change =
+                        prevWeek > 0
+                          ? ((currentWeek - prevWeek) / prevWeek) * 100
+                          : 0;
+
+                      return (
+                        <>
+                          <div
+                            className={`text-lg font-bold ${
+                              change >= 0 ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {change >= 0 ? "↑" : "↓"}{" "}
+                            {Math.abs(Math.round(change))}%
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {change >= 0 ? "Increase" : "Decrease"}
+                          </div>
+                        </>
+                      );
+                    })()}
                 </div>
               </div>
             </div>
@@ -764,6 +873,7 @@ const AdminDashboard = () => {
       <Suspense fallback={renderSkeleton()}>
         {activeSection === "staff" && <AdminStaff />}
         {activeSection === "bookings" && <AdminPackageBookings />}
+        {activeSection === "donarAdminpage" && <DonarAdminpage />}
         {activeSection === "dashboard" && renderDashboardContent()}
       </Suspense>
     );
