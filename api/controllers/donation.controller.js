@@ -167,8 +167,12 @@ export const getAllDonationRequests = async (req, res) => {
 
     // Sort configuration
     const sort = {};
-    const sortField = sortBy === "timestamp" ? "timestamp" : sortBy;
-    sort[sortField] = sortOrder === "desc" ? -1 : 1;
+    if (sortBy === "timestamp") {
+      sort.timestamp = sortOrder === "desc" ? -1 : 1; // Latest first for desc
+    } else {
+      // For any other sort field
+      sort[sortBy] = sortOrder === "desc" ? -1 : 1;
+    }
 
     // console.log("Sort:", sort);
 
@@ -706,6 +710,68 @@ const formatCSV = (data) => {
   return csvRows.join("\n");
 };
 
+// @desc    Get total statistics for all donations (for dashboard cards)
+// @route   GET /api/donation-requests/statistics/total
+// @access  Public/Private
+export const getTotalStatistics = async (req, res) => {
+  try {
+    // Get ALL donations without pagination
+    const allDonations = await DonationRequest.find({}).lean();
+    
+    // Calculate totals
+    const totalRequests = allDonations.length;
+    const totalVerified = allDonations.filter(d => d.verified).length;
+    const totalCompleted = allDonations.filter(d => d.status === "Complete").length;
+   const totalHighPriority = allDonations.filter(d => d.priority === 4 || d.priority === 5).length;
+    const totalLinkedSupplier = allDonations.filter(d => d.status === "Linked a supplier").length; // Add this
+    
+    // Calculate counts for other statuses if needed
+    const totalNotYetReceived = allDonations.filter(d => d.status === "Not yet received").length;
+    const totalReceived = allDonations.filter(d => d.status === "Received").length;
+    const totalAlreadyReceived = allDonations.filter(d => d.status === "Already received").length;
+    const totalFake = allDonations.filter(d => d.status === "FAKE").length;
+    
+    // Calculate call status counts
+    const totalCalledAnswered = allDonations.filter(d => d.callStatus === "Called - answered").length;
+    const totalCalledNotAnswered = allDonations.filter(d => d.callStatus === "Called - not answered").length;
+    const totalNotCalled = allDonations.filter(d => !d.callStatus || d.callStatus === "").length;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRequests,
+        totalVerified,
+        totalCompleted,
+        totalHighPriority,
+        totalLinkedSupplier, // Add this
+        statusDistribution: {
+          "Not yet received": totalNotYetReceived,
+          "Linked a supplier": totalLinkedSupplier,
+          "Received": totalReceived,
+          "Already received": totalAlreadyReceived,
+          "Complete": totalCompleted,
+          "FAKE": totalFake
+        },
+        callStatusDistribution: {
+          "Called - answered": totalCalledAnswered,
+          "Called - not answered": totalCalledNotAnswered,
+          "Not called": totalNotCalled
+        }
+      },
+      message: "Total statistics retrieved successfully"
+    });
+  } catch (error) {
+    console.error("Error fetching total statistics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching total statistics",
+      error: error.message,
+    });
+  }
+};
+
+
+
 // @desc    Get suggestions for autocomplete
 // @route   GET /api/donation-requests/suggestions/:field
 // @access  Public/Private
@@ -774,91 +840,5 @@ export const getFieldSuggestions = async (req, res) => {
       message: "Error fetching suggestions",
       error: error.message,
     });
-  }
-};
-
-
-/// @desc    Get donation listings
-// @route   GET /api/donation-requests/getdonationlistings
-// @access  Public
-
-
-export const getDonationListings = async (req, res) => {
-  try {
-    const {
-      searchTerm = "",
-      status = "all",
-      priority = "all",
-      verified = "all",
-      district = "all", // Always gets "all" from frontend
-      sort = "createdAt",
-      order = "desc",
-      skip = 0,
-      limit = 20,
-    } = req.query;
-
-    const filter = {};
-
-    // Search
-    if (searchTerm) {
-      filter.$or = [
-        { name: { $regex: searchTerm, $options: "i" } },
-        { address: { $regex: searchTerm, $options: "i" } },
-        { district: { $regex: searchTerm, $options: "i" } },
-        { notes: { $regex: searchTerm, $options: "i" } },
-        { phone: { $in: [new RegExp(searchTerm, "i")] } },
-      ];
-    }
-
-    // Status filter
-    if (status !== "all") filter.status = status;
-
-    // Priority filter
-    if (priority !== "all") filter.priority = parseInt(priority);
-
-    // Verified filter
-    if (verified !== "all") filter.verified = verified === "true";
-
-    // District filter - will always be "all" from frontend
-    if (district !== "all") filter.district = district;
-
-    // Sorting
-    const sortOrder = order === "asc" ? 1 : -1;
-    const sortQuery = { [sort]: sortOrder };
-
-    // Fetch data
-    const listings = await DonationRequest.find(filter)
-      .sort(sortQuery)
-      .skip(parseInt(skip))
-      .limit(parseInt(limit))
-      .lean();
-
-    const total = await DonationRequest.countDocuments(filter);
-
-    return res.status(200).json({
-      success: true,
-      data: listings,
-      total,
-      hasMore: listings.length === parseInt(limit),
-    });
-  } catch (error) {
-    console.error("Error in getDonationListings:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching listings",
-    });
-  }
-};
-
-
-export const ggetDonationListingsById = async (req, res, next) => {
-  try {
-    const products = await DonationRequest.findById(req.params.id);
-    if (!products) {
-      return next(errorHandler(404, "No donations not found"));
-    }
-    res.status(200).json(products);
-  } catch (error) {
-    next(error);
   }
 };

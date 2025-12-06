@@ -37,17 +37,19 @@ function DonationRequests() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-const [filters, setFilters] = useState({
-  district: "",
-  status: "",
-  priority: "",
-  verified: "",
-  callStatus: "all", 
-});;
-  const [sortConfig, setSortConfig] = useState({
-    key: "createdAt",
-    direction: "desc",
+  const [filters, setFilters] = useState({
+    district: "",
+    status: "",
+    priority: "",
+    verified: "",
+    callStatus: "all", 
   });
+  const [formErrors, setFormErrors] = useState({}); // New state for form validation errors
+ const [sortConfig, setSortConfig] = useState({
+  key: "timestamp", // Change from "createdAt" to "timestamp"
+  direction: "desc",
+});
+
   const searchTimeoutRef = useRef(null);
   const [pagination, setPagination] = useState({
     currentPage: 1,
@@ -55,6 +57,66 @@ const [filters, setFilters] = useState({
     totalItems: 0,
     itemsPerPage: 50,
   });
+
+  const [statistics, setStatistics] = useState({
+  totalRequests: 0,
+  totalVerified: 0,
+  totalCompleted: 0,
+  totalHighPriority: 0,
+  totalLinkedSupplier: 0,
+});
+  // Add this function for parsing dates for sorting
+const parseDateForSorting = (dateString) => {
+  if (!dateString) return 0;
+  
+  try {
+    // Handle YYYY-DD-MM format (e.g., "2025-02-12")
+    const parts = dateString.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const [year, day, month] = parts;
+      return new Date(year, parseInt(month) - 1, day).getTime();
+    }
+    
+    // Fallback to standard Date parsing
+    return new Date(dateString).getTime();
+  } catch (error) {
+    console.error("Date parsing error:", error);
+    return 0;
+  }
+};
+
+// Update the useEffect for filtering to include sorting
+useEffect(() => {
+  if (!searchKey.trim()) {
+    // When no search, sort donations by timestamp (latest first)
+    const sortedDonations = [...donations].sort((a, b) => {
+      const dateA = parseDateForSorting(a.timestamp);
+      const dateB = parseDateForSorting(b.timestamp);
+      return dateB - dateA; // Latest first
+    });
+    setFilteredDonations(sortedDonations);
+    return;
+  }
+
+  // When searching, filter and then sort
+  const filtered = donations.filter(donation => 
+    donation.name?.toLowerCase().includes(searchKey.toLowerCase()) ||
+    donation.phone?.some(phone => phone.includes(searchKey)) ||
+    donation.district?.toLowerCase().includes(searchKey.toLowerCase()) ||
+    donation.address?.toLowerCase().includes(searchKey.toLowerCase()) ||
+    donation.status?.toLowerCase().includes(searchKey.toLowerCase()) ||
+    formatCallStatus(donation.callStatus)?.toLowerCase().includes(searchKey.toLowerCase())
+  );
+  
+  // Sort the filtered results by timestamp (latest first)
+  const sortedFiltered = filtered.sort((a, b) => {
+    const dateA = parseDateForSorting(a.timestamp);
+    const dateB = parseDateForSorting(b.timestamp);
+    return dateB - dateA; // Latest first
+  });
+  
+  setFilteredDonations(sortedFiltered);
+}, [searchKey, donations]);
 
   // Form states for add/edit
   const [formData, setFormData] = useState({
@@ -114,13 +176,12 @@ const [filters, setFilters] = useState({
   ];
 
   // Call Status options
-// Call Status options
-const callStatusOptions = [
-  { value: "", label: "Not called" },
-  { value: "Called - answered", label: "Called - answered" },
-  { value: "Called - not answered", label: "Called - not answered" },
-  { value: "all", label: "All Call Status" }, // Add an "all" option
-];
+  const callStatusOptions = [
+    { value: "", label: "Not called" },
+    { value: "Called - answered", label: "Called - answered" },
+    { value: "Called - not answered", label: "Called - not answered" },
+    { value: "all", label: "All Call Status" },
+  ];
 
   // Quick requirement suggestions
   const requirementSuggestions = [
@@ -146,8 +207,25 @@ const callStatusOptions = [
     "Tea Leaves",
   ];
 
+  // Form validation function
+// Form validation function
+const validateForm = () => {
+  const errors = {};
+  
+  // Phone validation - at least one valid phone number is required
+  const validPhoneNumbers = formData.phone.filter(phone => phone.trim());
+  if (validPhoneNumbers.length === 0) {
+    errors.phone = "At least one phone number is required";
+  }
+  
+  // Name, district, and address are now optional
+  // No validation needed for these fields
+  
+  return errors;
+};
+
   // Fetch donations data
-// Fetch donations data - FIXED VERSION
+// Fetch donations data
 const fetchDonations = async (page = 1, search = "") => {
   try {
     setLoading(true);
@@ -164,64 +242,62 @@ const fetchDonations = async (page = 1, search = "") => {
       params.append("search", search);
     }
 
-    // Add filters to query params - FIXED VERSION
+    // Add filters to query params
     Object.entries(filters).forEach(([key, value]) => {
-      // For callStatus, handle "all" case differently
       if (key === "callStatus") {
         if (value !== "all") {
-          // Send even empty string "" for "not called"
           params.append(key, value);
-          console.log(`Adding callStatus filter: ${key}=${value}`); // Debug log
-        } else {
-          console.log(`Skipping callStatus filter for "all" option`); // Debug log
         }
       } else {
-        // For other filters, only add if not empty
         if (value !== "") {
           params.append(key, value);
-          console.log(`Adding filter: ${key}=${value}`); // Debug log
         }
       }
     });
 
-    console.log("API URL:", `/api/donation-requests?${params}`); // Debug log
-    
-    const response = await fetch(`/api/donation-requests?${params}`);
+    // Fetch both paginated data AND total statistics
+    const [donationsResponse, statsResponse] = await Promise.all([
+      fetch(`/api/donation-requests?${params}`),
+      fetch(`/api/donation-requests/statistics/total`)
+    ]);
 
-    if (!response.ok) {
+    if (!donationsResponse.ok) {
       throw new Error("Failed to fetch donation requests");
     }
 
-    const data = await response.json();
-    if (data.success) {
-      setDonations(data.data || []);
-      setFilteredDonations(data.data || []);
+    const donationsData = await donationsResponse.json();
+    const statsData = statsResponse.ok ? await statsResponse.json() : null;
+
+    if (donationsData.success) {
+      // Apply client-side sorting to ensure correct order
+      const sortedData = (donationsData.data || []).sort((a, b) => {
+        const dateA = parseDateForSorting(a.timestamp);
+        const dateB = parseDateForSorting(b.timestamp);
+        return dateB - dateA; // Latest first
+      });
+
+      setDonations(sortedData);
+      setFilteredDonations(sortedData);
       setPagination(
-        data.pagination || {
+        donationsData.pagination || {
           currentPage: 1,
           totalPages: 1,
           totalItems: 0,
           itemsPerPage: 50,
         }
       );
-      
-      // Debug: Check if filtering is working
-      console.log("Total donations fetched:", data.data?.length || 0);
-      console.log("Pagination:", data.pagination);
-      
-      // Check how many have empty callStatus
-      if (data.data) {
-        const notCalledCount = data.data.filter(d => !d.callStatus || d.callStatus === "").length;
-        const calledAnsweredCount = data.data.filter(d => d.callStatus === "Called - answered").length;
-        const calledNotAnsweredCount = data.data.filter(d => d.callStatus === "Called - not answered").length;
-        
-        console.log("Call Status breakdown in fetched data:");
-        console.log("- Not called:", notCalledCount);
-        console.log("- Called - answered:", calledAnsweredCount);
-        console.log("- Called - not answered:", calledNotAnsweredCount);
+
+      // If we have statistics data, update a state for it
+      if (statsData && statsData.success) {
+        // You might want to create a state for statistics
+        // For now, we'll update the pagination totalItems to show total count
+        setPagination(prev => ({
+          ...prev,
+          totalItems: statsData.data.totalRequests || prev.totalItems
+        }));
       }
     } else {
-      throw new Error(data.message || "Failed to fetch data");
+      throw new Error(donationsData.message || "Failed to fetch data");
     }
   } catch (error) {
     console.error("Fetch error:", error);
@@ -230,6 +306,38 @@ const fetchDonations = async (page = 1, search = "") => {
     setLoading(false);
   }
 };
+
+// Fetch total statistics
+const fetchStatistics = async () => {
+  try {
+    const response = await fetch(`/api/donation-requests/statistics/total`);
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch statistics");
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      setStatistics({
+        totalRequests: data.data.totalRequests || 0,
+        totalVerified: data.data.totalVerified || 0,
+        totalCompleted: data.data.totalCompleted || 0,
+        totalHighPriority: data.data.totalHighPriority || 0,
+        totalLinkedSupplier: data.data.totalLinkedSupplier || 0,
+      });
+      
+      // Also update pagination totalItems
+      setPagination(prev => ({
+        ...prev,
+        totalItems: data.data.totalRequests || prev.totalItems
+      }));
+    }
+  } catch (error) {
+    console.error("Statistics fetch error:", error);
+  }
+};
+
 
   // Fetch ALL donations for export (without pagination)
   const fetchAllDonations = async () => {
@@ -300,6 +408,11 @@ const fetchDonations = async (page = 1, search = "") => {
     setFilteredDonations(donations);
   };
 
+useEffect(() => {
+  fetchDonations();
+  fetchStatistics(); // Fetch statistics on component mount
+}, [sortConfig, filters]);
+
   // Search function
   const handleSearch = () => {
     if (searchKey.trim()) {
@@ -353,7 +466,7 @@ const fetchDonations = async (page = 1, search = "") => {
       }
       
       message += `\n---\n*ID:* ${donation._id}\n`;
-      message += `*Created:* ${formatDate(donation.createdAt)}\n`;
+      message += `*Requested On:* ${formatDate(donation.timestamp)}\n`;
       
       const encodedMessage = encodeURIComponent(message);
       const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
@@ -396,7 +509,7 @@ const fetchDonations = async (page = 1, search = "") => {
         "Other Requirements": donation.otherRequirements?.join(", ") || "",
         "Time": donation.time || "",
         "Notes": donation.notes || "",
-        "Created At": formatDate(donation.createdAt),
+        "Created At": formatDate(donation.timestamp),
         "Updated At": formatDate(donation.updatedAt),
       }));
 
@@ -469,6 +582,14 @@ const fetchDonations = async (page = 1, search = "") => {
         [name]: value,
       });
     }
+    
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: ""
+      });
+    }
   };
 
   // Handle phone number changes
@@ -479,6 +600,14 @@ const fetchDonations = async (page = 1, search = "") => {
       ...formData,
       phone: newPhoneNumbers,
     });
+    
+    // Clear phone error when user types in phone field
+    if (formErrors.phone) {
+      setFormErrors({
+        ...formErrors,
+        phone: ""
+      });
+    }
   };
 
   // Add new phone number field
@@ -554,42 +683,38 @@ const fetchDonations = async (page = 1, search = "") => {
     setSortConfig({ key, direction });
   };
 
-const handleFilterChange = (name, value) => {
-  console.log(`Filter changed: ${name}=${value}`);
-  setFilters(prev => ({
-    ...prev,
-    [name]: value
-  }));
-};
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-const clearFilters = () => {
-  console.log("Clearing all filters");
-  setFilters({
-    district: "",
-    status: "",
-    priority: "",
-    verified: "",
-    callStatus: "all", // Default to "all"
-  });
-};
+  const clearFilters = () => {
+    setFilters({
+      district: "",
+      status: "",
+      priority: "",
+      verified: "",
+      callStatus: "all",
+    });
+  };
+
   // Add new donation request
   const handleAddDonation = async () => {
     try {
-      if (!formData.name.trim()) {
-        setErrorMessage("Name is required");
+      // Validate form
+      const errors = validateForm();
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        setErrorMessage("Please fill in all required fields");
         return;
       }
+      
+      // Clear any previous errors
+      setFormErrors({});
 
       const validPhoneNumbers = formData.phone.filter(phone => phone.trim());
-      if (validPhoneNumbers.length === 0) {
-        setErrorMessage("At least one phone number is required");
-        return;
-      }
-
-      if (!formData.district || !formData.address.trim()) {
-        setErrorMessage("District and address are required");
-        return;
-      }
 
       const requestData = {
         ...formData,
@@ -632,11 +757,18 @@ const clearFilters = () => {
     try {
       if (!selectedDonation) return;
 
-      const validPhoneNumbers = formData.phone.filter(phone => phone.trim());
-      if (validPhoneNumbers.length === 0) {
-        setErrorMessage("At least one phone number is required");
+      // Validate form
+      const errors = validateForm();
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        setErrorMessage("Please fill in all required fields");
         return;
       }
+      
+      // Clear any previous errors
+      setFormErrors({});
+
+      const validPhoneNumbers = formData.phone.filter(phone => phone.trim());
 
       const requestData = {
         ...formData,
@@ -706,7 +838,7 @@ const clearFilters = () => {
     }
   };
 
-  // Reset form
+  // Reset form and errors
   const resetForm = () => {
     setFormData({
       name: "",
@@ -724,6 +856,7 @@ const clearFilters = () => {
       callStatus: "",
       notes: "",
     });
+    setFormErrors({});
   };
 
   // Open edit modal with donation data
@@ -745,6 +878,7 @@ const clearFilters = () => {
       callStatus: donation.callStatus || "",
       notes: donation.notes || "",
     });
+    setFormErrors({});
     setShowEditModal(true);
     setShowViewModal(false);
   };
@@ -776,22 +910,23 @@ const clearFilters = () => {
   };
 
   // Get priority color
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 1:
-        return "bg-red-100 text-red-800 border border-red-200";
-      case 2:
-        return "bg-orange-100 text-orange-800 border border-orange-200";
-      case 3:
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
-      case 4:
-        return "bg-blue-100 text-blue-800 border border-blue-200";
-      case 5:
-        return "bg-green-100 text-green-800 border border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border border-gray-200";
-    }
-  };
+// Get priority color
+const getPriorityColor = (priority) => {
+  switch (priority) {
+    case 5: // Changed from 1 to 5 for Critical (Highest)
+      return "bg-red-100 text-red-800 border border-red-200";
+    case 4: // Changed from 2 to 4 for Very High
+      return "bg-orange-100 text-orange-800 border border-orange-200";
+    case 3: // Changed from 3 to 3 for High (stays same)
+      return "bg-yellow-100 text-yellow-800 border border-yellow-200";
+    case 2: // Changed from 4 to 2 for Medium
+      return "bg-blue-100 text-blue-800 border border-blue-200";
+    case 1: // Changed from 5 to 1 for Low
+      return "bg-green-100 text-green-800 border border-green-200";
+    default:
+      return "bg-gray-100 text-gray-800 border border-gray-200";
+  }
+};
 
   // Get call status color and icon
   const getCallStatusColor = (callStatus) => {
@@ -817,17 +952,41 @@ const clearFilters = () => {
   };
 
   // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
+// Format date from YYYY-DD-MM format
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  
+  try {
+    // Parse YYYY-DD-MM format (e.g., "2025-02-12" = December 12, 2025)
+    const parts = dateString.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const [year, day, month] = parts;
+      // Month is 0-indexed in JavaScript Date (0 = January)
+      const date = new Date(year, parseInt(month) - 1, day);
+      
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    
+    // Fallback for other date formats
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
-      month: "short",
+      month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  } catch (error) {
+    console.error("Date formatting error:", error);
+    return "Invalid Date";
+  }
+};
 
   // Pagination handlers
   const handlePageChange = (page) => {
@@ -917,69 +1076,78 @@ const clearFilters = () => {
         </div>
 
         {/* Stats Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {pagination.totalItems}
-                </h2>
-                <p className="text-gray-600 text-sm md:text-base">Total Requests</p>
-              </div>
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
-                <FaChartBar className="text-lg md:text-2xl text-white" />
-              </div>
-            </div>
-          </div>
+{/* Stats Summary Cards */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+  <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {statistics.totalRequests}
+        </h2>
+        <p className="text-gray-600 text-sm md:text-base">Total Requests</p>
+      </div>
+      <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+        <FaChartBar className="text-lg md:text-2xl text-white" />
+      </div>
+    </div>
+  </div>
 
-          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {donations.filter((d) => d.verified).length}
-                </h2>
-                <p className="text-gray-600 text-sm md:text-base">Verified</p>
-              </div>
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
-                <FaCheckCircle className="text-lg md:text-2xl text-white" />
-              </div>
-            </div>
-          </div>
+  <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {statistics.totalVerified}
+        </h2>
+        <p className="text-gray-600 text-sm md:text-base">Verified</p>
+      </div>
+      <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
+        <FaCheckCircle className="text-lg md:text-2xl text-white" />
+      </div>
+    </div>
+  </div>
 
-          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {
-                    donations.filter((d) => d.status === "Complete").length
-                  }
-                </h2>
-                <p className="text-gray-600 text-sm md:text-base">Completed</p>
-              </div>
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                <FaCheckCircle className="text-lg md:text-2xl text-white" />
-              </div>
-            </div>
-          </div>
+  <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-xl font-semibold text-gray-800">
+        {statistics.totalLinkedSupplier}
+      </h2>
+      <p className="text-gray-600 text-sm md:text-base">Linked to Supplier</p>
+    </div>
+    <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+      <FaUsers className="text-lg md:text-2xl text-white" />
+    </div>
+  </div>
+</div>
 
-          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {
-                    donations.filter(
-                      (d) => d.priority === 1 || d.priority === 2
-                    ).length
-                  }
-                </h2>
-                <p className="text-gray-600 text-sm md:text-base">High Priority</p>
-              </div>
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center">
-                <FaExclamationTriangle className="text-lg md:text-2xl text-white" />
-              </div>
-            </div>
-          </div>
-        </div>
+  <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {statistics.totalCompleted}
+        </h2>
+        <p className="text-gray-600 text-sm md:text-base">Completed</p>
+      </div>
+      <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+        <FaCheckCircle className="text-lg md:text-2xl text-white" />
+      </div>
+    </div>
+  </div>
+
+  <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {statistics.totalHighPriority}
+        </h2>
+        <p className="text-gray-600 text-sm md:text-base">High Priority</p>
+      </div>
+      <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center">
+        <FaExclamationTriangle className="text-lg md:text-2xl text-white" />
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Search and Actions Bar */}
         <div className="bg-white rounded-xl shadow p-4 mb-6">
@@ -1127,19 +1295,19 @@ const clearFilters = () => {
                       Call Status
                     </label>
                     <select
-  value={filters.callStatus}
-  onChange={(e) => handleFilterChange('callStatus', e.target.value)}
-  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
->
-  <option value="all">All Call Status</option> {/* Add this first */}
-  {callStatusOptions.map((status) => (
-    status.value !== "all" && (
-      <option key={status.value} value={status.value}>
-        {status.label}
-      </option>
-    )
-  ))}
-</select>
+                      value={filters.callStatus}
+                      onChange={(e) => handleFilterChange('callStatus', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm"
+                    >
+                      <option value="all">All Call Status</option>
+                      {callStatusOptions.map((status) => (
+                        status.value !== "all" && (
+                          <option key={status.value} value={status.value}>
+                            {status.label}
+                          </option>
+                        )
+                      ))}
+                    </select>
                   </div>
 
                   <div className="lg:col-span-2">
@@ -1264,19 +1432,19 @@ const clearFilters = () => {
                   <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Call Status
                   </th>
-                  <th 
-                    className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort('createdAt')}
-                  >
-                    <div className="flex items-center">
-                      Created
-                      {sortConfig.key === 'createdAt' && (
-                        sortConfig.direction === 'asc' ? 
-                        <FaArrowUp className="ml-1" /> : 
-                        <FaArrowDown className="ml-1" />
-                      )}
-                    </div>
-                  </th>
+                 <th 
+  className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+  onClick={() => handleSort('timestamp')} // Change from 'createdAt' to 'timestamp'
+>
+  <div className="flex items-center">
+    Created
+    {sortConfig.key === 'timestamp' && ( // Change from 'createdAt' to 'timestamp'
+      sortConfig.direction === 'asc' ? 
+      <FaArrowUp className="ml-1" /> : 
+      <FaArrowDown className="ml-1" />
+    )}
+  </div>
+</th>
                   <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -1374,7 +1542,7 @@ const clearFilters = () => {
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(donation.createdAt)}
+                        {formatDate(donation.timestamp)}
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-1 md:space-x-2">
@@ -1563,9 +1731,12 @@ const clearFilters = () => {
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                          className={`w-full px-4 py-2.5 border ${formErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                           placeholder="Enter contact person name"
                         />
+                        {formErrors.name && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1577,11 +1748,11 @@ const clearFilters = () => {
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                         >
-                          <option value="1">1 - Critical (Highest)</option>
-                          <option value="2">2 - Very High</option>
-                          <option value="3">3 - High</option>
-                          <option value="4">4 - Medium</option>
-                          <option value="5">5 - Low</option>
+                           <option value="1">1 - Low</option>
+                            <option value="2">2 - Medium</option>
+                            <option value="3">3 - High</option>
+                            <option value="4">4 - Very High</option>
+                            <option value="5">5 - Critical (Highest)</option>
                         </select>
                       </div>
                     </div>
@@ -1595,6 +1766,9 @@ const clearFilters = () => {
                         (Add multiple numbers if needed)
                       </span>
                     </h4>
+                    {formErrors.phone && (
+                      <p className="mb-2 text-sm text-red-600">{formErrors.phone}</p>
+                    )}
                     {formData.phone.map((phoneNumber, index) => (
                       <div key={index} className="flex gap-2 mb-3">
                         <div className="flex-1">
@@ -1602,7 +1776,7 @@ const clearFilters = () => {
                             type="text"
                             value={phoneNumber}
                             onChange={(e) => handlePhoneChange(index, e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                            className={`w-full px-4 py-2.5 border ${formErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                             placeholder={`Phone number ${index + 1} (e.g., 0712345678)`}
                           />
                         </div>
@@ -1642,7 +1816,7 @@ const clearFilters = () => {
                           name="district"
                           value={formData.district}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                          className={`w-full px-4 py-2.5 border ${formErrors.district ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                         >
                           <option value="">Select District</option>
                           {districts.map((district) => (
@@ -1651,6 +1825,9 @@ const clearFilters = () => {
                             </option>
                           ))}
                         </select>
+                        {formErrors.district && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.district}</p>
+                        )}
                       </div>
                     </div>
                     <div className="mt-4">
@@ -1662,9 +1839,12 @@ const clearFilters = () => {
                         value={formData.address}
                         onChange={handleInputChange}
                         rows="2"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                        className={`w-full px-4 py-2.5 border ${formErrors.address ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                         placeholder="Enter full address"
                       />
+                      {formErrors.address && (
+                        <p className="mt-1 text-sm text-red-600">{formErrors.address}</p>
+                      )}
                     </div>
                   </div>
 
@@ -1988,8 +2168,11 @@ const clearFilters = () => {
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                          className={`w-full px-4 py-2.5 border ${formErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                         />
+                        {formErrors.name && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2001,11 +2184,11 @@ const clearFilters = () => {
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                         >
-                          <option value="1">1 - Critical (Highest)</option>
-                          <option value="2">2 - Very High</option>
+                          <option value="1">1 - Low</option>
+                          <option value="2">2 - Medium</option>
                           <option value="3">3 - High</option>
-                          <option value="4">4 - Medium</option>
-                          <option value="5">5 - Low</option>
+                          <option value="4">4 - Very High</option>
+                          <option value="5">5 - Critical (Highest)</option>
                         </select>
                       </div>
                     </div>
@@ -2019,6 +2202,9 @@ const clearFilters = () => {
                         (Add multiple numbers if needed)
                       </span>
                     </h4>
+                    {formErrors.phone && (
+                      <p className="mb-2 text-sm text-red-600">{formErrors.phone}</p>
+                    )}
                     {formData.phone.map((phoneNumber, index) => (
                       <div key={index} className="flex gap-2 mb-3">
                         <div className="flex-1">
@@ -2026,7 +2212,7 @@ const clearFilters = () => {
                             type="text"
                             value={phoneNumber}
                             onChange={(e) => handlePhoneChange(index, e.target.value)}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                            className={`w-full px-4 py-2.5 border ${formErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                             placeholder={`Phone number ${index + 1}`}
                           />
                         </div>
@@ -2066,7 +2252,7 @@ const clearFilters = () => {
                           name="district"
                           value={formData.district}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                          className={`w-full px-4 py-2.5 border ${formErrors.district ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                         >
                           <option value="">Select District</option>
                           {districts.map((district) => (
@@ -2075,6 +2261,9 @@ const clearFilters = () => {
                             </option>
                           ))}
                         </select>
+                        {formErrors.district && (
+                          <p className="mt-1 text-sm text-red-600">{formErrors.district}</p>
+                        )}
                       </div>
                     </div>
                     <div className="mt-4">
@@ -2086,8 +2275,11 @@ const clearFilters = () => {
                         value={formData.address}
                         onChange={handleInputChange}
                         rows="2"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                        className={`w-full px-4 py-2.5 border ${formErrors.address ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50`}
                       />
+                      {formErrors.address && (
+                        <p className="mt-1 text-sm text-red-600">{formErrors.address}</p>
+                      )}
                     </div>
                   </div>
 
@@ -2451,7 +2643,7 @@ const clearFilters = () => {
                         <div className="text-sm text-gray-600 font-medium">
                           Created
                         </div>
-                        <div>{formatDate(selectedDonation.createdAt)}</div>
+                        <div>{formatDate(selectedDonation.timestamp)}</div>
                       </div>
                     </div>
                   </div>
