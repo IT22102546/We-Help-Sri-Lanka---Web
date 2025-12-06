@@ -1,57 +1,106 @@
 import mongoose from "mongoose";
 
-const donarSchema = new mongoose.Schema(
+const donorOrganizationSchema = new mongoose.Schema(
   {
-    donationId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "DonationRequest",
-    },
-
-    donorName: {
+    timestamp: {
       type: String,
       required: true,
     },
-    donorEmail: {
+    name: {
       type: String,
       required: true,
     },
-    donorPhone: {
-      type: String,
-      required: true,
-    },
-    donationType: [
+    phone: [
       {
         type: String,
       },
     ],
-    /*quantity: {
+    contactPersons: [
+      {
+        type: String,
+      },
+    ],
+    email: {
       type: String,
-      required: true,
-    },*/
+      default: "",
+    },
     district: {
       type: String,
-      required: true,
+      default: "",
     },
     location: {
       type: String,
-      required: true,
+      default: "",
     },
-   /* estimatedValue: {
+    transportationNeed: {
       type: String,
-      required: true,
-    },*/
-    deliveryMethod: {
-      type: String,
-      required: true,
+      enum: ["Need", "No", "Not mentioned", ""],
+      default: "Not mentioned",
     },
-
-    reply: {
+    supportTypes: [
+      {
+        type: String,
+      },
+    ],
+    otherSupport: [
+      {
+        type: String,
+      },
+    ],
+    availabilityNotes: {
       type: String,
+      default: "",
+    },
+    callStatus: {
+      type: String,
+      enum: ["Called - answered", "Called - not answered", ""],
+      default: "",
+    },
+    status: {
+      type: String,
+      enum: [
+        "Linked with someone",
+        "Did not Link",
+        "",
+      ],
+      default: "",
+    },
+    collectionDates: {
+      type: String,
+      default: "",
+    },
+    bankDetails: {
+      bankName: { type: String, default: "" },
+      accountName: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },
+      branch: { type: String, default: "" },
+      swiftCode: { type: String, default: "" },
+      reference: { type: String, default: "" },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-const Donor = mongoose.model("Donor", donarSchema);
-export default Donor;
+// Create indexes for better query performance
+donorOrganizationSchema.index({ district: 1 });
+donorOrganizationSchema.index({ supportTypes: 1 });
+donorOrganizationSchema.index({ callStatus: 1 });
+donorOrganizationSchema.index({ status: 1 });
+donorOrganizationSchema.index({ createdAt: -1 });
+
+// Text index for searching organization names and locations
+donorOrganizationSchema.index({ 
+  name: "text", 
+  location: "text", 
+  availabilityNotes: "text" 
+});
+
+const DonorOrganization = mongoose.model(
+  "DonorOrganization",
+  donorOrganizationSchema,
+  "donorOrganizations"
+);
+
+export default DonorOrganization;
