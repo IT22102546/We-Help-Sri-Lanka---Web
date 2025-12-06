@@ -58,7 +58,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
   return (
     <div className="w-64 h-full bg-gradient-to-b from-blue-50 to-white border-r border-gray-200 p-2 pt-0 pl-0 shadow-lg">
       {/* Logo and Title - Updated for rectangular logo */}
-      <div className="flex flex-col items-center mb-8 pt-14 mt-6">
+      <div className="flex flex-col items-center mb-8 pt-14 mt-10">
         {/* Logo Container */}
         <div className="relative mb-3">
           {/* Background with proper aspect ratio for rectangular logo */}
@@ -132,7 +132,7 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           }`}
         >
           <FaUser className="mr-3 h-5 w-5" />
-          <span className="font-medium">Donation Request</span>
+          <span className="font-medium">Disaster AID Requests</span>
         </button>
       </nav>
 

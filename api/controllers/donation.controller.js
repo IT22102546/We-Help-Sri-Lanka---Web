@@ -147,9 +147,10 @@ export const getAllDonationRequests = async (req, res) => {
       filter.verified = verified === "true";
     }
 
-    if (callStatus && callStatus !== "all") {
-      filter.callStatus = callStatus;
-    }
+   if (callStatus !== undefined && callStatus !== "all") {
+  // Allow empty string as a valid filter
+  filter.callStatus = callStatus;
+}
 
     // Search across multiple fields
     if (search) {
