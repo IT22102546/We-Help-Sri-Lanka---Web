@@ -17,11 +17,9 @@ const donationRequestSchema = new mongoose.Schema(
     ],
     district: {
       type: String,
-      required: true,
     },
     address: {
       type: String,
-      required: true,
     },
     numberOfPeople: {
       type: String,
