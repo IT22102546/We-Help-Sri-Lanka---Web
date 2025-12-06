@@ -776,3 +776,89 @@ export const getFieldSuggestions = async (req, res) => {
     });
   }
 };
+
+
+/// @desc    Get donation listings
+// @route   GET /api/donation-requests/getdonationlistings
+// @access  Public
+
+
+export const getDonationListings = async (req, res) => {
+  try {
+    const {
+      searchTerm = "",
+      status = "all",
+      priority = "all",
+      verified = "all",
+      district = "all", // Always gets "all" from frontend
+      sort = "createdAt",
+      order = "desc",
+      skip = 0,
+      limit = 20,
+    } = req.query;
+
+    const filter = {};
+
+    // Search
+    if (searchTerm) {
+      filter.$or = [
+        { name: { $regex: searchTerm, $options: "i" } },
+        { address: { $regex: searchTerm, $options: "i" } },
+        { district: { $regex: searchTerm, $options: "i" } },
+        { notes: { $regex: searchTerm, $options: "i" } },
+        { phone: { $in: [new RegExp(searchTerm, "i")] } },
+      ];
+    }
+
+    // Status filter
+    if (status !== "all") filter.status = status;
+
+    // Priority filter
+    if (priority !== "all") filter.priority = parseInt(priority);
+
+    // Verified filter
+    if (verified !== "all") filter.verified = verified === "true";
+
+    // District filter - will always be "all" from frontend
+    if (district !== "all") filter.district = district;
+
+    // Sorting
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortQuery = { [sort]: sortOrder };
+
+    // Fetch data
+    const listings = await DonationRequest.find(filter)
+      .sort(sortQuery)
+      .skip(parseInt(skip))
+      .limit(parseInt(limit))
+      .lean();
+
+    const total = await DonationRequest.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      data: listings,
+      total,
+      hasMore: listings.length === parseInt(limit),
+    });
+  } catch (error) {
+    console.error("Error in getDonationListings:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching listings",
+    });
+  }
+};
+
+
+export const ggetDonationListingsById = async (req, res, next) => {
+  try {
+    const products = await DonationRequest.findById(req.params.id);
+    if (!products) {
+      return next(errorHandler(404, "No donations not found"));
+    }
+    res.status(200).json(products);
+  } catch (error) {
+    next(error);
+  }
+};

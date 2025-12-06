@@ -10,15 +10,20 @@ import {
   getDashboardStatistics,
   exportDonationRequests,
   getFieldSuggestions,
+  getDonationListings,
+  ggetDonationListingsById,
 } from "../controllers/donation.controller.js";
 
 const router = express.Router();
 
 // Public routes
+router.get("/getdonationlistings", getDonationListings);
+router.get('/getdonationlistings/:id', ggetDonationListingsById);
 router.post("/", createDonationRequest);
 router.get("/", getAllDonationRequests);
 router.get("/:id", getDonationRequestById);
 router.get("/suggestions/:field", getFieldSuggestions);
+
 
 // Protected routes (add authentication middleware as needed)
 router.put("/:id", updateDonationRequest);
