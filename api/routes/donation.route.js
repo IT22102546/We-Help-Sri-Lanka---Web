@@ -11,6 +11,7 @@ import {
   exportDonationRequests,
   getFieldSuggestions,
   getTotalStatistics,
+  getDonationListings
 } from "../controllers/donation.controller.js";
 
 const router = express.Router();
@@ -18,17 +19,20 @@ const router = express.Router();
 // Public routes
 router.post("/", createDonationRequest);
 router.get("/", getAllDonationRequests);
-router.get("/:id", getDonationRequestById);
+
+// IMPORTANT: Put all static routes BEFORE parameterized routes
+router.get("/getdonationlistings", getDonationListings);
 router.get("/suggestions/:field", getFieldSuggestions);
-
-// Add this line to your routes
 router.get("/statistics/total", getTotalStatistics);
-
-// Protected routes (add authentication middleware as needed)
-router.put("/:id", updateDonationRequest);
-router.delete("/:id", deleteDonationRequest);
-router.patch("/bulk-update", bulkUpdateDonationRequests);
 router.get("/statistics/dashboard", getDashboardStatistics);
 router.get("/export/data", exportDonationRequests);
+
+// Parameterized routes come LAST
+router.get("/:id", getDonationRequestById);
+router.put("/:id", updateDonationRequest);
+router.delete("/:id", deleteDonationRequest);
+
+// Other routes
+router.patch("/bulk-update", bulkUpdateDonationRequests);
 
 export default router;

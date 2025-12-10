@@ -678,9 +678,6 @@ const formatCSV = (data) => {
   return csvRows.join("\n");
 };
 
-// @desc    Get total statistics for all donations (for dashboard cards)
-// @route   GET /api/donation-requests/statistics/total
-// @access  Public/Private
 export const getTotalStatistics = async (req, res) => {
   try {
     // Get ALL donations without pagination
@@ -691,11 +688,17 @@ export const getTotalStatistics = async (req, res) => {
     const totalCompleted = allDonations.filter(
       (d) => d.status === "Complete"
     ).length;
-    const totalLinkedSupplier = allDonations.filter(
-      (d) => d.status === "Linked a supplier"
-    ).length; // Add this
+    
+    // FIX: Use "Linked with someone" instead of "Linked a supplier"
+    const totalLinkedWithSomeone = allDonations.filter(
+      (d) => d.status === "Linked with someone"
+    ).length;
+    
+    const totalDidNotLink = allDonations.filter(
+      (d) => d.status === "Did not Link"
+    ).length;
 
-    // Calculate counts for other statuses if needed
+    // Calculate counts for other statuses
     const totalNotYetReceived = allDonations.filter(
       (d) => d.status === "Not yet received"
     ).length;
@@ -723,10 +726,13 @@ export const getTotalStatistics = async (req, res) => {
       data: {
         totalRequests,
         totalCompleted,
-        totalLinkedSupplier, // Add this
+        // FIX: Return the correct field name
+        totalLinkedWithSomeone,
+        totalDidNotLink,
         statusDistribution: {
           "Not yet received": totalNotYetReceived,
-          "Linked a supplier": totalLinkedSupplier,
+          "Linked with someone": totalLinkedWithSomeone,
+          "Did not Link": totalDidNotLink,
           Received: totalReceived,
           "Already received": totalAlreadyReceived,
           Complete: totalCompleted,
@@ -749,7 +755,6 @@ export const getTotalStatistics = async (req, res) => {
     });
   }
 };
-
 // @desc    Get suggestions for autocomplete
 // @route   GET /api/donation-requests/suggestions/:field
 // @access  Public/Private

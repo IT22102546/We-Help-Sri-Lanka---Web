@@ -12,7 +12,7 @@ import orgRoutes from "./routes/org.route.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import donationRoute from "./routes/donation.route.js";
-import donarRoutes from "./routes/donar.route.js";
+
 // For ES6 module dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,7 +92,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/donation-requests", donationRoute);
 app.use("/api/admin", adminRoutes);
-app.use("/api/donar", donarRoutes);
 app.use("/api/orgs", orgRoutes);
 
 

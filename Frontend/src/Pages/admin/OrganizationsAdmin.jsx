@@ -19,6 +19,9 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaPhoneAlt,
+  FaLink,
+  FaUnlink,
+   FaWhatsapp,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -58,8 +61,27 @@ function OrganizationsAdmin() {
   const [statistics, setStatistics] = useState({
     totalRequests: 0,
     totalCompleted: 0,
-    totalLinkedSupplier: 0,
+    totalLinkedWithSomeone: 0,
+    totalDidNotLink: 0,
+    totalReceived: 0,
+    totalNotYetReceived: 0,
   });
+
+    const whatsappShareMessage = `We appreciate your generous willingness in serving our fellow Sri Lankans during this mass disaster situation.
+Please use your online platform to find the most needy and support them.
+Thank you.
+
+https://wehelpsrilanka.epicworkspace.site
+
+'We Help Sri Lanka' Volunteer Movement
+Let's Rebuild Our Motherland`;
+
+  // Function to handle WhatsApp sharing
+  const handleWhatsAppShare = () => {
+    const encodedMessage = encodeURIComponent(whatsappShareMessage);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   // Parse dates for sorting
   const parseDateForSorting = (dateString) => {
@@ -178,9 +200,8 @@ function OrganizationsAdmin() {
     "Matale",
   ];
 
-  // Status options from your data
+  // Status options from your data - UPDATED
   const statusOptions = [
-    "",
     "Not yet received",
     "Linked with someone",
     "Did not Link",
@@ -188,6 +209,7 @@ function OrganizationsAdmin() {
     "Already received",
     "Complete",
     "FAKE",
+    "",
   ];
 
   // Call Status options from your data
@@ -352,7 +374,10 @@ function OrganizationsAdmin() {
           setStatistics({
             totalRequests: statsData.data.totalRequests || 0,
             totalCompleted: statsData.data.totalCompleted || 0,
-            totalLinkedSupplier: statsData.data.totalLinkedSupplier || 0,
+            totalLinkedWithSomeone: statsData.data.totalLinkedWithSomeone || 0,
+            totalDidNotLink: statsData.data.totalDidNotLink || 0,
+            totalReceived: statsData.data.statusDistribution?.Received || 0,
+            totalNotYetReceived: statsData.data.statusDistribution?.["Not yet received"] || 0,
           });
 
           setPagination((prev) => ({
@@ -386,7 +411,10 @@ function OrganizationsAdmin() {
         setStatistics({
           totalRequests: data.data.totalRequests || 0,
           totalCompleted: data.data.totalCompleted || 0,
-          totalLinkedSupplier: data.data.totalLinkedSupplier || 0,
+          totalLinkedWithSomeone: data.data.totalLinkedWithSomeone || 0,
+          totalDidNotLink: data.data.totalDidNotLink || 0,
+          totalReceived: data.data.statusDistribution?.Received || 0,
+          totalNotYetReceived: data.data.statusDistribution?.["Not yet received"] || 0,
         });
 
         setPagination((prev) => ({
@@ -735,6 +763,7 @@ function OrganizationsAdmin() {
         setShowAddModal(false);
         resetForm();
         fetchDonations();
+        fetchStatistics();
       }
     } catch (error) {
       console.error("Add donation error:", error);
@@ -782,6 +811,7 @@ function OrganizationsAdmin() {
         setShowEditModal(false);
         resetForm();
         fetchDonations();
+        fetchStatistics();
       }
     } catch (error) {
       console.error("Edit donation error:", error);
@@ -808,6 +838,7 @@ function OrganizationsAdmin() {
         setSuccessMessage("Organization deleted successfully!");
         setShowDeleteModal(false);
         fetchDonations();
+        fetchStatistics();
       }
     } catch (error) {
       console.error("Delete donation error:", error);
@@ -873,25 +904,43 @@ function OrganizationsAdmin() {
     setShowViewModal(true);
   };
 
-  // Get status color
+  // Get status color - UPDATED
   const getStatusColor = (status) => {
     switch (status) {
       case "Received":
       case "Already received":
         return "bg-green-100 text-green-800 border border-green-200";
       case "Linked with someone":
-      case "Linked a supplier":
         return "bg-blue-100 text-blue-800 border border-blue-200";
+      case "Did not Link":
+        return "bg-red-100 text-red-800 border border-red-200";
       case "Complete":
         return "bg-purple-100 text-purple-800 border border-purple-200";
       case "FAKE":
-        return "bg-red-100 text-red-800 border border-red-200";
-      case "Did not Link":
-        return "bg-orange-100 text-orange-800 border border-orange-200";
+        return "bg-gray-100 text-gray-800 border border-gray-200";
       case "Not yet received":
         return "bg-yellow-100 text-yellow-800 border border-yellow-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
+    }
+  };
+
+  // Get status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Linked with someone":
+        return <FaLink className="h-3 w-3 mr-1" />;
+      case "Did not Link":
+        return <FaUnlink className="h-3 w-3 mr-1" />;
+      case "Received":
+      case "Already received":
+        return <FaCheckCircle className="h-3 w-3 mr-1" />;
+      case "Complete":
+        return <FaCheckCircle className="h-3 w-3 mr-1" />;
+      case "Not yet received":
+        return <FaClock className="h-3 w-3 mr-1" />;
+      default:
+        return null;
     }
   };
 
@@ -1052,7 +1101,19 @@ function OrganizationsAdmin() {
           </div>
         </div>
 
-        {/* Stats Summary Cards */}
+         <div className="flex justify-end mb-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleWhatsAppShare}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
+          >
+            <FaWhatsapp className="text-xl" />
+            <span>Share on WhatsApp</span>
+          </motion.button>
+        </div>
+
+        {/* Stats Summary Cards - UPDATED */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -1074,13 +1135,31 @@ function OrganizationsAdmin() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">
-                  {statistics.totalLinkedSupplier}
+                  {statistics.totalLinkedWithSomeone}
                 </h2>
-                <p className="text-gray-600 text-sm md:text-base">
-                  Linked to Supplier
+                <p className="text-gray-600 text-sm md:text-base flex items-center">
+                  <FaLink className="mr-1 h-3 w-3" />
+                  Linked with Someone
                 </p>
               </div>
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 flex items-center justify-center">
+                <FaUsers className="text-lg md:text-2xl text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {statistics.totalDidNotLink}
+                </h2>
+                <p className="text-gray-600 text-sm md:text-base flex items-center">
+                  <FaUnlink className="mr-1 h-3 w-3" />
+                  Did Not Link
+                </p>
+              </div>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center">
                 <FaUsers className="text-lg md:text-2xl text-white" />
               </div>
             </div>
@@ -1095,6 +1174,40 @@ function OrganizationsAdmin() {
                 <p className="text-gray-600 text-sm md:text-base">Completed</p>
               </div>
               <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <FaCheckCircle className="text-lg md:text-2xl text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {statistics.totalNotYetReceived}
+                </h2>
+                <p className="text-gray-600 text-sm md:text-base flex items-center">
+                  <FaClock className="mr-1 h-3 w-3" />
+                  Not Yet Received
+                </p>
+              </div>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                <FaClock className="text-lg md:text-2xl text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow p-4 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {statistics.totalReceived}
+                </h2>
+                <p className="text-gray-600 text-sm md:text-base">Received</p>
+              </div>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
                 <FaCheckCircle className="text-lg md:text-2xl text-white" />
               </div>
             </div>
@@ -1448,13 +1561,14 @@ function OrganizationsAdmin() {
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                         <div className="space-y-1">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          <div
+                            className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(
                               donation.status
                             )}`}
                           >
-                            {donation.status}
-                          </span>
+                            {getStatusIcon(donation.status)}
+                            {donation.status || "Not set"}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap">
@@ -1968,7 +2082,7 @@ function OrganizationsAdmin() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Status
+                          Status *
                         </label>
                         <select
                           name="status"
@@ -2367,7 +2481,7 @@ function OrganizationsAdmin() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Status
+                          Status *
                         </label>
                         <select
                           name="status"
@@ -2483,10 +2597,11 @@ function OrganizationsAdmin() {
                           Status
                         </div>
                         <div
-                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium flex items-center ${getStatusColor(
                             selectedDonation.status
                           )}`}
                         >
+                          {getStatusIcon(selectedDonation.status)}
                           {selectedDonation.status || "Not set"}
                         </div>
                       </div>

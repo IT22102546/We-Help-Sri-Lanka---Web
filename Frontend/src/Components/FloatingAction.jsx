@@ -1,18 +1,30 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { FaArrowUp } from "react-icons/fa";
 
 function FloatingAction() {
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const toggleVisibility = () => {
+      setIsVisible(window.pageYOffset > 300);
+    };
+    window.addEventListener("scroll", toggleVisibility);
+    return () => window.removeEventListener("scroll", toggleVisibility);
+  }, []);
+
+  if (!isVisible) return null;
 
   return (
-    <button
-      onClick={scrollToTop}
-      className="fixed bottom-6 right-6 bg-gray-800 hover:bg-gray-700 text-white text-xl font-bold p-4 rounded-xl shadow-lg transition-all duration-300 z-50"
-      aria-label="Scroll to top"
+    <div
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed right-6 bottom-6 z-50 w-12 h-12 flex items-center justify-center rounded-full bg-gray-800 shadow-lg cursor-pointer"
+      style={{
+        // Inline style prevents any class name interpretation
+        backgroundColor: '#1f2937'
+      }}
     >
-      ↑
-    </button>
+      <FaArrowUp className="text-white text-lg" />
+    </div>
   );
 }
 

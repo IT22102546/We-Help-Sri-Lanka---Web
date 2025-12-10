@@ -9,6 +9,7 @@ import {
   FaBitcoin,
   FaGifts,
   FaUserLock,
+  FaTruck
 } from "react-icons/fa";
 import logo from "../assets/Logo/logo.png";
 
@@ -148,7 +149,19 @@ const DashSideBar = ({ onNavItemClick, activeSection }) => {
           }`}
         >
           <FaUsers className="mr-3 h-5 w-5" />
-          <span className="font-medium">Organization</span>
+          <span className="font-medium">Donation Requests</span>
+        </button>
+
+         <button
+          onClick={() => onNavItemClick("TransportProviders")}
+          className={`flex items-center w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+            activeSection === "TransportProviders"
+              ? "bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md"
+              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
+        >
+          <FaTruck className="mr-3 h-5 w-5" />
+          <span className="font-medium">Transport Providers</span>
         </button>
 
         {/* Donation Request Link 
