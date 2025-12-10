@@ -351,39 +351,76 @@ export default function Listings({ item }) {
         </div>
 
         {/* Address Section - Added to card */}
-        {item.address && (
-          <div className="mb-3 md:mb-4 flex-grow-0">
-            <div className="flex items-start gap-1.5 md:gap-2 p-2 md:p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-              <MdLocationCity className="text-gray-600 text-sm md:text-base flex-shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 mb-1">Address</p>
-                <p className="text-xs md:text-sm font-medium text-gray-900 leading-tight">
-                  {expandedAddress ? item.address : truncateText(item.address, 60)}
-                </p>
-                {isAddressLong && !expandedAddress && (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedAddress(true)}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1 flex items-center gap-0.5"
-                  >
-                    <MdExpandMore className="text-xs" />
-                    Read more
-                  </button>
-                )}
-                {expandedAddress && isAddressLong && (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedAddress(false)}
-                    className="text-xs text-gray-500 hover:text-gray-700 font-medium mt-1 flex items-center gap-0.5"
-                  >
-                    <MdExpandMore className="text-xs rotate-180" />
-                    Show less
-                  </button>
-                )}
-              </div>
+      {/* Address Section - Responsive truncation */}
+{item.address && (
+  <div className="mb-3 md:mb-4 flex-grow-0">
+    <div className="flex items-start gap-1.5 md:gap-2 p-2 md:p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+      <MdLocationCity className="text-gray-600 text-sm md:text-base flex-shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-gray-500 mb-1">Address</p>
+        <p className="text-xs md:text-sm font-medium text-gray-900 leading-tight break-words">
+          {/* Responsive truncation based on screen size */}
+          <span className="hidden sm:block">
+            {expandedAddress 
+              ? item.address 
+              : (item.address.length > 100 ? `${item.address.substring(0, 100)}...` : item.address)
+            }
+          </span>
+          <span className="sm:hidden">
+            {expandedAddress 
+              ? item.address 
+              : (item.address.length > 60 ? `${item.address.substring(0, 60)}...` : item.address)
+            }
+          </span>
+        </p>
+        
+        {/* Show "Read more" button only when address exceeds truncation limit */}
+        {!expandedAddress && (
+          <>
+            {/* Desktop: Show if address > 100 chars */}
+            <div className="hidden sm:block">
+              {item.address.length > 100 && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedAddress(true)}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1 flex items-center gap-0.5"
+                >
+                  <MdExpandMore className="text-xs" />
+                  Read more
+                </button>
+              )}
             </div>
-          </div>
+            {/* Mobile: Show if address > 60 chars */}
+            <div className="sm:hidden">
+              {item.address.length > 60 && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedAddress(true)}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1 flex items-center gap-0.5"
+                >
+                  <MdExpandMore className="text-xs" />
+                  Read more
+                </button>
+              )}
+            </div>
+          </>
         )}
+        
+        {/* Show "Show less" button when expanded */}
+        {expandedAddress && (
+          <button
+            type="button"
+            onClick={() => setExpandedAddress(false)}
+            className="text-xs text-gray-500 hover:text-gray-700 font-medium mt-1 flex items-center gap-0.5"
+          >
+            <MdExpandMore className="text-xs rotate-180" />
+            Show less
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Status & Verification */}
         <div className="flex items-center justify-between mb-3 md:mb-4 p-2 md:p-3 bg-gray-50 rounded-lg flex-shrink-0">
