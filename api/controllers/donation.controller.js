@@ -842,3 +842,177 @@ export const getFieldSuggestions = async (req, res) => {
     });
   }
 };
+
+export const getDonationListings = async (req, res) => {
+  try {
+    console.log("Fetching donation listings with query:", req.query);
+    
+    const {
+      searchTerm = "",
+      status = "all",
+      verified = "all",
+      district = "all",
+      sortBy = "createdAt", // CHANGED: Default to createdAt
+      sortOrder = "desc",   // DEFAULT: descending (newest first)
+      skip = 0,
+      limit = 12,
+      page = 1,
+    } = req.query;
+
+    // Build filter object (same as before)
+    const filter = {};
+
+    // Search across multiple fields
+    if (searchTerm && searchTerm.trim() !== "") {
+      const searchRegex = new RegExp(searchTerm.trim(), "i");
+      filter.$or = [
+        { name: searchRegex },
+        { address: searchRegex },
+        { district: searchRegex },
+        { phone: searchRegex },
+        { remarks: searchRegex },
+        { requirements: searchRegex },
+        { otherRequirements: searchRegex },
+      ];
+    }
+
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    if (verified !== "all") {
+      filter.verified = verified === "true";
+    }
+
+    if (district && district !== "all") {
+      filter.district = { $regex: district.trim(), $options: "i" };
+    }
+
+    console.log("Filter object:", JSON.stringify(filter, null, 2));
+
+    // Convert skip and limit to numbers
+    const skipNum = parseInt(skip) || 0;
+    const limitNum = parseInt(limit) || 12;
+
+    // Get total count first
+    const total = await DonationRequest.countDocuments(filter);
+    console.log("Total documents found:", total);
+
+    // IMPROVED SORT LOGIC - Always use createdAt for sorting
+    const sort = {};
+    
+    if (sortBy === "priority") {
+      sort.priority = sortOrder === "asc" ? 1 : -1;
+      sort.createdAt = -1; // Secondary sort by newest
+    } else if (sortBy === "numberOfPeople") {
+      sort.numberOfPeople = sortOrder === "asc" ? 1 : -1;
+      sort.createdAt = -1; // Secondary sort by newest
+    } else if (sortBy === "timestamp") {
+      // Even if user requests timestamp sort, use createdAt
+      // But also include timestamp in sort as fallback
+      sort.createdAt = sortOrder === "asc" ? 1 : -1;
+      sort.timestamp = sortOrder === "asc" ? 1 : -1;
+    } else {
+      // Default: newest first based on createdAt
+      sort.createdAt = sortOrder === "asc" ? 1 : -1;
+    }
+
+    // Fetch data
+    let donations = [];
+    if (total > 0) {
+      donations = await DonationRequest.find(filter)
+        .sort(sort)
+        .skip(skipNum)
+        .limit(limitNum)
+        .lean();
+      
+      // Process donations - ensure timestamp is available for display
+      donations = donations.map(doc => {
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(doc._id);
+        
+        // Calculate post day from timestamp
+        const timestamp = doc.timestamp || doc.createdAt;
+        let postDay = "Unknown";
+        
+        if (timestamp) {
+          const postDate = new Date(timestamp);
+          const now = new Date();
+          const diffTime = Math.abs(now - postDate);
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 0) {
+            postDay = "Today";
+          } else if (diffDays === 1) {
+            postDay = "Yesterday";
+          } else if (diffDays < 7) {
+            postDay = `${diffDays} days ago`;
+          } else if (diffDays < 30) {
+            const weeks = Math.floor(diffDays / 7);
+            postDay = `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+          } else {
+            postDay = postDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+          }
+        }
+        
+        return {
+          ...doc,
+          _id: isValidObjectId ? doc._id.toString() : doc._id,
+          name: doc.name || "Anonymous Request",
+          phone: doc.phone || [],
+          district: doc.district || "Unknown District",
+          address: doc.address || "",
+          numberOfPeople: doc.numberOfPeople || "0",
+          requirements: doc.requirements || [],
+          otherRequirements: doc.otherRequirements || [],
+          priority: doc.priority || 3,
+          verified: doc.verified || false,
+          status: doc.status || "Not yet received",
+          callStatus: doc.callStatus || "",
+          notes: doc.notes || doc.remarks || "",
+          // Ensure timestamp is available for display
+          timestamp: doc.timestamp || doc.createdAt || new Date().toISOString(),
+          // Add formatted post day for display
+          postDay: postDay,
+          // Also store the raw timestamp for sorting/comparison
+          createdAt: doc.createdAt || doc.timestamp || new Date(),
+        };
+      });
+    }
+
+    console.log(`Fetched ${donations.length} donations`);
+    console.log("Sort used:", sort);
+    
+    // Debug: show timestamps of first few donations
+    if (donations.length > 0) {
+      console.log("Sample dates:");
+      donations.slice(0, 3).forEach((d, i) => {
+        console.log(`#${i + 1}: ${d.name} - Created: ${d.createdAt}, Display: ${d.postDay}`);
+      });
+    }
+
+    const hasMore = skipNum + donations.length < total;
+
+    res.status(200).json({
+      success: true,
+      data: donations,
+      total: total,
+      hasMore: hasMore,
+      currentPage: parseInt(page) || 1,
+      totalPages: Math.ceil(total / limitNum),
+      message: "Donation listings fetched successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in getDonationListings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching donation listings",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
+  }
+};
